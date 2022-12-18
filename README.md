@@ -14,7 +14,7 @@
 
 > utility for using transformers summarization models on text docs
 
-A longer description of your project goes here...
+A continuation of the [document summarization](<https://huggingface.co/spaces/pszemraj/document-summarization>) space on huggingface.
 
 ---
 
