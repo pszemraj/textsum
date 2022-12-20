@@ -1,28 +1,29 @@
-import os
 import contextlib
 import logging
+import os
 import random
 import re
 import time
 from pathlib import Path
+
+os.environ["USE_TORCH"] = "1"
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 import gradio as gr
 import nltk
 from cleantext import clean
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
-from pdf2text import convert_PDF_to_Text
 
-from summarize import load_model_and_tokenizer, summarize_via_tokenbatches
-from utils import load_example_filenames, truncate_word_count, saves_summary
+from textsum.pdf2text import convert_PDF_to_Text
+from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
+from textsum.utils import load_example_filenames, saves_summary, truncate_word_count
 
 _here = Path(__file__).parent
 
 nltk.download("stopwords")  # TODO=find where this requirement originates from
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
 
 def proc_submission(
@@ -51,7 +52,17 @@ def proc_submission(
     Returns:
         str in HTML format, string of the summary, str of score
     """
+    global model, tokenizer, model_sm, tokenizer_sm
+    # assert that the model is loaded and accessible
+    if "model" not in globals():
+        model, tokenizer = load_model_and_tokenizer(
+            "pszemraj/pegasus-x-large-book-summary"
+        )
 
+    if "model_sm" not in globals():
+        model_sm, tokenizer_sm = load_model_and_tokenizer(
+            "pszemraj/long-t5-tglobal-base-16384-book-summary"
+        )
     settings = {
         "length_penalty": float(length_penalty),
         "repetition_penalty": float(repetition_penalty),
@@ -102,8 +113,8 @@ def proc_submission(
 
     _summaries = summarize_via_tokenbatches(
         tr_in,
-        model_sm if "base" in model_size.lower() else model,
-        tokenizer_sm if "base" in model_size.lower() else tokenizer,
+        model_sm if model_size == "LongT5-base" else model,
+        tokenizer_sm if model_size == "LongT5-base" else tokenizer,
         batch_length=token_batch_length,
         **settings,
     )
@@ -129,37 +140,6 @@ def proc_submission(
     saved_file = saves_summary(_summaries)
 
     return html, sum_text_out, scores_out, saved_file
-
-
-def load_single_example_text(
-    example_path: str or Path,
-    max_pages=20,
-):
-    """
-    load_single_example - a helper function for the gradio module to load examples
-    Returns:
-        list of str, the examples
-    """
-    global name_to_path
-    full_ex_path = name_to_path[example_path]
-    full_ex_path = Path(full_ex_path)
-    if full_ex_path.suffix == ".txt":
-        with open(full_ex_path, "r", encoding="utf-8", errors="ignore") as f:
-            raw_text = f.read()
-        text = clean(raw_text, lower=False)
-    elif full_ex_path.suffix == ".pdf":
-        logging.info(f"Loading PDF file {full_ex_path}")
-        conversion_stats = convert_PDF_to_Text(
-            full_ex_path,
-            ocr_model=ocr_model,
-            max_pages=max_pages,
-        )
-        text = conversion_stats["converted_text"]
-    else:
-        logging.error(f"Unknown file type {full_ex_path.suffix}")
-        text = "ERROR - check example path"
-
-    return text
 
 
 def load_uploaded_file(file_obj, max_pages=20):
@@ -215,6 +195,7 @@ def main():
         model_sm, tokenizer_sm = load_model_and_tokenizer(
             "pszemraj/long-t5-tglobal-base-16384-book-summary"
         )
+    # ensure that the models are global variables
 
     logging.info("Loading OCR model")
     with contextlib.redirect_stdout(None):
@@ -224,10 +205,7 @@ def main():
             pretrained=True,
             assume_straight_pages=True,
         )
-    name_to_path = load_example_filenames(_here / "examples")
-    logging.info(f"Loaded {len(name_to_path)} examples")
     demo = gr.Blocks()
-    _examples = list(name_to_path.keys())
     with demo:
 
         gr.Markdown("# Document Summarization with Long-Document Transformers")
@@ -254,11 +232,7 @@ def main():
                         value=2,
                     )
                 with gr.Column(variant="compact"):
-                    example_name = gr.Dropdown(
-                        _examples,
-                        label="Examples",
-                        value=random.choice(_examples),
-                    )
+
                     uploaded_file = gr.File(
                         label="File Upload",
                         file_count="single",
@@ -271,9 +245,7 @@ def main():
                     placeholder="Enter text to summarize, the text will be cleaned and truncated on Spaces. Narrative, academic (both papers and lecture transcription), and article text work well. May take a bit to generate depending on the input text :)",
                 )
                 with gr.Column(min_width=100, scale=0.5):
-                    load_examples_button = gr.Button(
-                        "Load Example",
-                    )
+
                     load_file_button = gr.Button("Upload File")
 
         with gr.Column():
@@ -341,10 +313,6 @@ def main():
                 "These models are fine-tuned on the [BookSum dataset](https://arxiv.org/abs/2105.08209).The goal was to create a model that can generalize well and is useful in summarizing lots of text in academic and daily usage."
             )
             gr.Markdown("---")
-
-        load_examples_button.click(
-            fn=load_single_example_text, inputs=[example_name], outputs=[input_text]
-        )
 
         load_file_button.click(
             fn=load_uploaded_file, inputs=uploaded_file, outputs=[input_text]

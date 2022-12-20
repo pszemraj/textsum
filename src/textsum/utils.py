@@ -2,11 +2,27 @@
     utils.py - Utility functions for the project.
 """
 
+import logging
 import re
-from pathlib import Path
-from datetime import datetime
-from natsort import natsorted
 import subprocess
+from datetime import datetime
+from pathlib import Path
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%m/%d/%Y %I:%M:%S",
+)
+from natsort import natsorted
+
+# ------------------------- #
+
+TEXT_EXAMPLE_URLS = {
+    "whisper_lecture": "https://pastebin.com/raw/X9PEgS2w",
+    "hf_blog_clip": "https://pastebin.com/raw/1RMg1Naz",
+}
+
+# ------------------------- #
 
 
 def get_timestamp() -> str:
@@ -41,7 +57,7 @@ def truncate_word_count(text, max_words=512):
     return processed
 
 
-def load_examples(src, filetypes=[".txt", ".pdf"]):
+def load_pdf_examples(src, filetypes=[".txt", ".pdf"]):
     """
     load_examples - a helper function for the gradio module to load examples
     Returns:
@@ -66,15 +82,42 @@ def load_examples(src, filetypes=[".txt", ".pdf"]):
     return text_examples
 
 
-def load_example_filenames(example_path: str or Path):
+def load_text_examples(
+    urls: dict = TEXT_EXAMPLE_URLS, target_dir: str or Path = None
+) -> Path:
     """
-    load_example_filenames - a helper function for the gradio module to load examples
-    Returns:
-        dict, the examples (filename:full path)
+    load_text_examples - load the text examples from the web to a directory
+
+    :param dict urls: the urls to the text examples, defaults to TEXT_EXAMPLE_URLS
+    :param strorPath target_dir: the path to the target directory, defaults to the current working directory
+    :return Path: the path to the directory containing the text examples
+    """
+    target_dir = Path.cwd() if target_dir is None else Path(target_dir)
+    target_dir.mkdir(exist_ok=True)
+
+    for name, url in urls.items():  # download the examples
+        subprocess.run(["wget", url, "-O", target_dir / f"{name}.txt"])
+
+    return target_dir
+
+
+def load_example_filenames(example_path: str or Path, ext: list = [".txt", ".md"]):
+    """
+    load_example_filenames - load the example filenames from a directory
+
+    :param strorPath example_path: the path to the examples directory
+    :param list ext: the file extensions to load (default: [".txt", ".md"])
+    :return dict: the example filenames
     """
     example_path = Path(example_path)
+    if not example_path.exists():
+        # download the examples
+        logging.info("Downloading the examples...")
+        example_path = load_text_examples(target_dir=example_path)
+
     # load the examples into a list
-    examples = {f.name: f for f in example_path.glob("*.txt")}
+    examples = {f.name: f.resolve() for f in example_path.glob("*") if f.suffix in ext}
+    logging.info(f"Loaded {len(examples)} examples from {example_path}")
     return examples
 
 

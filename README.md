@@ -16,6 +16,38 @@
 
 A continuation of the [document summarization](<https://huggingface.co/spaces/pszemraj/document-summarization>) space on huggingface.
 
+## Installation
+
+```bash
+pip install -e .
+```
+
+To install all the dependencies _(includes PDF OCR, gradio UI demo)_, run:
+
+```bash
+pip install -e .[all]
+```
+
+## Usage
+
+### UI Demo
+
+Simply run the following command to start the UI demo:
+
+```bash
+ts-ui
+```
+
+Other args to be added soon
+
+## Roadmap
+
+- [ ] add argparse CLI for UI demo
+- [ ] add CLI for summarization of all text files in a directory
+- [ ] API for summarization of text docs
+
+and other things I haven't thought of yet
+
 ---
 
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
