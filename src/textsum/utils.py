@@ -2,9 +2,17 @@
     utils.py - Utility functions for the project.
 """
 
+import logging
 import re
-from pathlib import Path
+import subprocess
 from datetime import datetime
+from pathlib import Path
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%m/%d/%Y %I:%M:%S",
+)
 from natsort import natsorted
 import subprocess
 

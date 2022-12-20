@@ -7,6 +7,9 @@ import time
 from pathlib import Path
 
 os.environ["USE_TORCH"] = "1"
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 import gradio as gr
 import nltk
