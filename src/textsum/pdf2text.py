@@ -15,21 +15,17 @@ logging.basicConfig(
 
 
 import os
-import pprint as pp
 import re
 import shutil
 import time
-from datetime import date, datetime
-from os.path import basename, dirname, join
+from datetime import date
+from os.path import join
 from pathlib import Path
 
 from cleantext import clean
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
-from libretranslatepy import LibreTranslateAPI
-from natsort import natsorted
 from spellchecker import SpellChecker
-from tqdm.auto import tqdm
 
 
 def simple_rename(filepath, target_ext=".txt"):
@@ -361,43 +357,3 @@ def convert_PDF_to_Text(
     }
 
     return results_dict
-
-
-# @title translation functions
-
-lt = LibreTranslateAPI("https://translate.astian.org/")
-
-
-def translate_text(text, source_l, target_l="en"):
-
-    return str(lt.translate(text, source_l, target_l))
-
-
-def translate_doc(filepath, lang_start, lang_end="en", verbose=False):
-    """translate a document from lang_start to lang_end
-
-        {'code': 'en', 'name': 'English'},
-    {'code': 'fr', 'name': 'French'},
-    {'code': 'de', 'name': 'German'},
-    {'code': 'it', 'name': 'Italian'},"""
-
-    src_folder = dirname(filepath)
-    src_folder = Path(src_folder)
-    trgt_folder = src_folder / f"translated_{lang_end}"
-    trgt_folder.mkdir(exist_ok=True)
-    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-        foreign_t = f.readlines()
-    in_name = basename(filepath)
-    translated_doc = []
-    for line in tqdm(
-        foreign_t, total=len(foreign_t), desc="translating {}...".format(in_name[:10])
-    ):
-        translated_line = translate_text(line, lang_start, lang_end)
-        translated_doc.append(translated_line)
-    t_out_name = "[To {}]".format(lang_end) + simple_rename(in_name) + ".txt"
-    out_path = join(trgt_folder, t_out_name)
-    with open(out_path, "w", encoding="utf-8", errors="ignore") as f_o:
-        f_o.writelines(translated_doc)
-    if verbose:
-        print("finished translating the document! - ", datetime.now())
-    return out_path
