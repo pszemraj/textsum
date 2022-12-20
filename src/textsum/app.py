@@ -202,7 +202,7 @@ def load_uploaded_file(file_obj, max_pages=20):
         return "Error: Could not read file. Ensure that it is a valid text file with encoding UTF-8 if text, and a PDF if PDF."
 
 
-if __name__ == "__main__":
+def main():
     logging.info("Starting app instance")
     os.environ[
         "TOKENIZERS_PARALLELISM"
@@ -365,3 +365,11 @@ if __name__ == "__main__":
         )
 
     demo.launch(enable_queue=True)
+
+
+def run():
+    main()
+
+
+if __name__ == "__main__":
+    run()
