@@ -1,3 +1,28 @@
+#  START CUSTOM IGNORES
+# logs
+*.log
+*LOGFILE*
+# output files need to be force-added
+*.csv
+*.png
+*.jpg
+*.jpeg
+*.pkl
+*.xlsx
+*.txt
+# cache
+*__pycache__/
+*.pyc
+# reports folder - need to be force-added
+*reports/
+# scratch files and folders
+*scratch*
+*scratch/
+# notebooks
+*notebooks/
+*.ipynb
+# END CUSTOM IGNORES
+
 # Temporary and binary files
 *~
 *.py[cod]
@@ -13,7 +38,6 @@ __pycache__/*
 .*.swp
 */.ipynb_checkpoints/*
 .DS_Store
-
 # Project files
 .ropeproject
 .project
@@ -22,13 +46,11 @@ __pycache__/*
 .idea
 .vscode
 tags
-
 # Package files
 *.egg
 *.eggs/
 .installed.cfg
 *.egg-info
-
 # Unittest and coverage
 htmlcov/*
 .coverage
@@ -37,7 +59,6 @@ htmlcov/*
 junit*.xml
 coverage.xml
 .pytest_cache/
-
 # Build and docs folder/files
 build/*
 dist/*
@@ -47,7 +68,6 @@ docs/_rst/*
 docs/_build/*
 cover/*
 MANIFEST
-
 # Per-project virtualenvs
 .venv*/
 .conda*/
