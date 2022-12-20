@@ -6,15 +6,17 @@ import re
 import time
 from pathlib import Path
 
+os.environ["USE_TORCH"] = "1"
+
 import gradio as gr
 import nltk
 from cleantext import clean
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
-from pdf2text import convert_PDF_to_Text
+from textsum.pdf2text import convert_PDF_to_Text
 
-from summarize import load_model_and_tokenizer, summarize_via_tokenbatches
-from utils import load_example_filenames, truncate_word_count, saves_summary
+from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
+from textsum.utils import load_example_filenames, truncate_word_count, saves_summary
 
 _here = Path(__file__).parent
 
