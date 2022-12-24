@@ -5,6 +5,7 @@
 import logging
 import re
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -13,6 +14,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
     datefmt="%m/%d/%Y %I:%M:%S",
 )
+
 from natsort import natsorted
 
 # ------------------------- #
@@ -164,3 +166,53 @@ def saves_summary(summarize_output, outpath: str or Path = None, add_signature=T
         fo.write("\n\n---\n")
 
     return outpath
+
+
+def setup_logging(loglevel, logfile=None):
+    """Setup basic logging
+        you will need something like this in your main script:
+            parser.add_argument(
+                "-v",
+                "--verbose",
+                dest="loglevel",
+                help="set loglevel to INFO",
+                action="store_const",
+                const=logging.INFO,
+            )
+            parser.add_argument(
+                "-vv",
+                "--very-verbose",
+                dest="loglevel",
+                help="set loglevel to DEBUG",
+                action="store_const",
+                const=logging.DEBUG,
+            )
+    Args:
+        loglevel (int): minimum loglevel for emitting messages
+        logfile (str): path to logfile. If None, log to stderr.
+    """
+    # remove any existing handlers
+    root = logging.getLogger()
+    if root.handlers:
+        for handler in root.handlers:
+            root.removeHandler(handler)
+
+    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
+    if logfile is None:
+        logging.basicConfig(
+            level=loglevel,
+            stream=sys.stdout,
+            format=logformat,
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    else:
+        loglevel = (
+            logging.INFO if not loglevel in [logging.DEBUG, logging.INFO] else loglevel
+        )
+        logging.basicConfig(
+            level=loglevel,
+            filename=logfile,
+            filemode="w",
+            format=logformat,
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
