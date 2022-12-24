@@ -36,6 +36,59 @@ def get_timestamp() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
+import re
+import subprocess
+
+
+def regex_gpu_name(input_text):
+    """backup if not a100"""
+
+    pattern = re.compile(r"(\s([A-Za-z0-9]+\s)+)(\s([A-Za-z0-9]+\s)+)", re.IGNORECASE)
+    return pattern.search(input_text).group()
+
+
+def check_GPU(verbose=False):
+    """
+    check_GPU - a function in Python that uses the subprocess module and regex to call the `nvidia-smi` command and check the available GPU. the function returns a boolean as to whether the GPU is an A100 or not
+
+    :param verbose: if true, print out which GPU was found if it is not an A100
+    """
+    # call nvidia-smi
+    nvidia_smi = subprocess.run(["nvidia-smi"], stdout=subprocess.PIPE)
+    # convert to string
+    nvidia_smi = nvidia_smi.stdout.decode("utf-8")
+    search_past = "==============================="
+    # use regex to find the GPU name. search in the first newline underneath <search_past>
+    output_lines = nvidia_smi.split("\n")
+    for i, line in enumerate(output_lines):
+        if search_past in line:
+            break
+    # get the next line
+    next_line = output_lines[i + 1]
+    if verbose:
+        print(next_line)
+    # use regex to find the GPU name
+    try:
+        gpu_name = re.search(r"\w+-\w+-\w+", next_line).group()
+    except AttributeError:
+        gpu_name = None
+    if gpu_name is None:
+        # try alternates
+        try:
+            gpu_name = regex_gpu_name(next_line)
+        except Exception as e:
+            print(f"unable to lookup GPU from output:\t{e}")
+            return False
+
+    if verbose:
+        print(f"GPU found: {gpu_name}")
+    # check if it is an A100
+    if "A100" in gpu_name:
+        return True
+    else:
+        return False
+
+
 def truncate_word_count(text, max_words=512):
     """
     truncate_word_count - a helper function for the gradio module
