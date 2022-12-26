@@ -89,6 +89,14 @@ def check_GPU(verbose=False):
         return False
 
 
+def get_mem_footprint(test_model):
+    """
+    get_mem_footprint - a helper function for the gradio module to get the memory footprint of a model (for huggingface models)
+    """
+    fp = test_model.get_memory_footprint() * (10**-9)
+    print(f"memory footprint is approx {round(fp, 2)} GB")
+
+
 def truncate_word_count(text, max_words=512):
     """
     truncate_word_count - a helper function for the gradio module
