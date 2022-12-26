@@ -269,3 +269,26 @@ def setup_logging(loglevel, logfile=None):
             format=logformat,
             datefmt="%Y-%m-%d %H:%M:%S",
         )
+
+
+def postprocess_booksummary(text: str, custom_phrases: list = None):
+    """
+    postprocess_booksummary - postprocess the book summary
+
+    :param str text: the text to postprocess
+    :param list custom_phrases: custom phrases to remove from the text, defaults to None
+    :return str: the postprocessed text
+    """
+    REMOVAL_PHRASES = [
+        "In this section, ",
+        "In this lecture, ",
+        "In this chapter, ",
+        "In this paper, ",
+    ]  # the default phrases to remove (from booksum dataset)
+
+    if custom_phrases is not None:
+        REMOVAL_PHRASES.extend(custom_phrases)
+    for pr in REMOVAL_PHRASES:
+
+        text = text.replace(pr, "")
+    return text
