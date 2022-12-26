@@ -6,9 +6,30 @@ from pathlib import Path
 import torch
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from cleantext import clean
 
 from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
-from textsum.utils import setup_logging
+from textsum.utils import setup_logging, get_mem_footprint
+
+
+def summarize_text_file(file_path, model, tokenizer, **kwargs):
+    """
+    summarize_text_file - given a file path, return a summary of the file
+
+    Args:
+        file_path (str): the path to the file to summarize
+        model (): the model to use for summarization
+        tokenizer (): the tokenizer to use for summarization
+
+    Returns:
+        str: the summary of the file
+    """
+    with open(file_path, "r") as f:
+        text = f.read()
+
+    summary = summarize_via_tokenbatches(text, model, tokenizer, **kwargs)
+
+    return summary
 
 
 def get_parser():
@@ -22,16 +43,16 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--input_dir",
+        "input_dir",
         type=str,
-        default="../data/raw/",
         help="the directory containing the input files",
     )
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="../data/processed/",
-        help="the directory to write the output files",
+        default=None,
+        target="output_dir",
+        help="directory to write the output files (if None, writes to input_dir/summarized)",
     )
     parser.add_argument(
         "-m",
@@ -41,7 +62,9 @@ def get_parser():
         help="the name of the model to use for summarization",
     )
     parser.add_argument(
+        "-bs",
         "--batch_length",
+        target="batch_length",
         type=int,
         default=4096,
         help="the length of each batch",
@@ -70,7 +93,8 @@ def get_parser():
         help="flag to not use cuda if available",
     )
     parser.add_argument(
-        "--max_length",
+        "--max_length_ratio",
+        target="max_length_ratio",
         type=int,
         default=140,
         help="the maximum length of the summary",
