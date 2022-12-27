@@ -94,24 +94,39 @@ def get_parser():
         help="flag to not use cuda if available",
     )
     parser.add_argument(
+        "-lr",
+        "-length_ratio",
         "--max_length_ratio",
         target="max_length_ratio",
         type=int,
-        default=140,
-        help="the maximum length of the summary",
+        default=0.25,
+        help="the maximum length of the summary as a ratio of the batch length",
     )
     parser.add_argument(
         "--min_length",
         type=int,
-        default=55,
+        default=8,
         help="the minimum length of the summary",
     )
     parser.add_argument(
-        "--early_stopping",
-        action="store_true",
-        help="flag to use early stopping",
+        "-enc_ngram",
+        "--encoder_no_repeat_ngram_size",
+        type=int,
+        default=3,
+        target="encoder_no_repeat_ngram_size",
+        help="the encoder no repeat ngram size (from source)",
     )
-
+    parser.add_argument(
+        "--no_early_stopping",
+        action="store_false",
+        target="early_stopping",
+        help="do not use early stopping when generating summaries with beam search",
+    )
+    parser.add_argument(
+        "--shuffle",
+        action="store_true",
+        help="shuffle the input files before summarizing",
+    )
     parser.add_argument(
         "-v",
         "--verbose",
@@ -139,10 +154,8 @@ def get_parser():
     return parser
 
 
-def main():
+def main(args):
 
-    parser = get_parser()
-    args = parser.parse_args()
     logging.info(f"args: {pp.pformat(args)}")
     setup_logging(args.loglevel, args.logfile)
     device = torch.device(
@@ -152,8 +165,34 @@ def main():
     # load the model and tokenizer
     model, tokenizer = load_model_and_tokenizer(args.model_name)
 
+    logging.info(f"model size: {get_mem_footprint(model)}")
     # move the model to the device
     model.to(device)
 
+    params = {
+        "min_length": args.min_length,
+        "max_length": int(args.max_length_ratio * args.batch_length),
+        "encoder_no_repeat_ngram_size": args.encoder_no_repeat_ngram_size,
+        "repetition_penalty": 2.5,
+        "num_beams": args.num_beams,
+        "num_beam_groups": 1,
+        "length_penalty": args.length_penalty,
+        "early_stopping": True,
+        "do_sample": False,
+    }
     # get the input files
-    input_files = Path(args.input_dir).glob("*.txt")
+    input_files = list(Path(args.input_dir).glob("*.txt"))
+
+    if args.shuffle:
+        logging.info("shuffling input files")
+        random.SystemRandom().shuffle(input_files)
+
+
+def run():
+    parser = get_parser()
+    args = parser.parse_args()
+    main(args)
+
+
+if __name__ == "__main__":
+    run()
