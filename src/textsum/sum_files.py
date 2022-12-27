@@ -10,10 +10,18 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
-from textsum.utils import get_mem_footprint, setup_logging
+from textsum.utils import get_mem_footprint, setup_logging, postprocess_booksummary
 
 
-def summarize_text_file(file_path, model, tokenizer, **kwargs):
+def summarize_text_file(
+    file_path,
+    model,
+    tokenizer,
+    batch_length: int = 2048,
+    batch_stride: int = 16,
+    lowercase: bool = True,
+    **kwargs,
+):
     """
     summarize_text_file - given a file path, return a summary of the file
 
@@ -21,16 +29,58 @@ def summarize_text_file(file_path, model, tokenizer, **kwargs):
         file_path (str): the path to the file to summarize
         model (): the model to use for summarization
         tokenizer (): the tokenizer to use for summarization
+        kw
 
     Returns:
-        str: the summary of the file
+        dict: a dictionary containing the summary and other information
     """
-    with open(file_path, "r") as f:
-        text = f.read()
+    file_path = Path(file_path)
 
-    summary = summarize_via_tokenbatches(text, model, tokenizer, **kwargs)
+    ALLOWED_EXTENSIONS = [".txt", ".md", ".rst", ".py", ".ipynb"]
+    assert (
+        file_path.exists() and file_path.suffix in ALLOWED_EXTENSIONS
+    ), f"File {file_path} does not exist or is not a text file"
 
-    return summary
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+        text = clean(f.read(), lower=lowercase, no_line_breaks=True)
+
+    summary_data = summarize_via_tokenbatches(
+        input_text=text,
+        model=model,
+        tokenizer=tokenizer,
+        batch_length=batch_length,
+        batch_stride=batch_stride,
+        **kwargs,
+    )
+
+    return summary_data
+
+
+def process_summarization(
+    summary_data,
+    file_path,
+    custom_phrases: list = None,
+):
+    sum_text = [postprocess_booksummary(s["summary"][0]) for s in summary_data]
+    sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
+    scores_text = "\n".join(sum_scores)
+    full_summary = "\n\t".join(sum_text)
+
+    with open(
+        file_path,
+        "w",
+    ) as fo:
+
+        fo.writelines(full_summary)
+    with open(
+        file_path,
+        "a",
+    ) as fo:
+
+        fo.write("\n" * 3)
+        fo.write(f"\n\nSection Scores for {f.name}:\n")
+        fo.writelines(scores_text)
+        fo.write("\n\n---\n")
 
 
 def get_parser():
