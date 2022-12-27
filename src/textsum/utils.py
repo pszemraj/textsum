@@ -40,7 +40,7 @@ import re
 import subprocess
 
 
-def regex_gpu_name(input_text):
+def regex_gpu_name(input_text: str):
     """backup if not a100"""
 
     pattern = re.compile(r"(\s([A-Za-z0-9]+\s)+)(\s([A-Za-z0-9]+\s)+)", re.IGNORECASE)
@@ -89,6 +89,25 @@ def check_GPU(verbose=False):
         return False
 
 
+def cstr(s, color="black"):
+    return "<text style=color:{}>{}</text>".format(color, s)
+
+
+def color_print(text: str, c_id="pink"):
+
+    colormap = {
+        "red": "\033[91m",
+        "green": "\033[92m",
+        "yellow": "\033[93m",
+        "blue": "\033[94m",
+        "pink": "\033[95m",
+        "teal": "\033[96m",
+        "grey": "\033[97m",
+    }
+
+    print(f"{colormap[c_id]}{text}")
+
+
 def get_mem_footprint(test_model):
     """
     get_mem_footprint - a helper function for the gradio module to get the memory footprint of a model (for huggingface models)
@@ -99,16 +118,13 @@ def get_mem_footprint(test_model):
 
 def truncate_word_count(text, max_words=512):
     """
-    truncate_word_count - a helper function for the gradio module
-    Parameters
-    ----------
-    text : str, required, the text to be processed
-    max_words : int, optional, the maximum number of words, default=512
-    Returns
-    -------
-    dict, the text and whether it was truncated
+    truncate_word_count - a helper function for the gradio module to truncate the text to a max number of words
+
+    :param str text: the text to truncate
+    :param int max_words: the max number of words to truncate to (default 512)
+    :return dict: a dictionary with the truncated text and a boolean indicating whether the text was truncated
     """
-    # split on whitespace with regex
+
     words = re.split(r"\s+", text)
     processed = {}
     if len(words) > max_words:
@@ -123,8 +139,10 @@ def truncate_word_count(text, max_words=512):
 def load_pdf_examples(src, filetypes=[".txt", ".pdf"]):
     """
     load_examples - a helper function for the gradio module to load examples
-    Returns:
-        list of str, the examples
+
+    :param str or Path src: the path to the source directory
+    :param list filetypes: the filetypes to load, defaults to [".txt", ".pdf"]
+    :return: a list of examples
     """
     src = Path(src)
     src.mkdir(exist_ok=True)
@@ -152,7 +170,7 @@ def load_text_examples(
     load_text_examples - load the text examples from the web to a directory
 
     :param dict urls: the urls to the text examples, defaults to TEXT_EXAMPLE_URLS
-    :param strorPath target_dir: the path to the target directory, defaults to the current working directory
+    :param str or Path target_dir: the path to the target directory, defaults to the current working directory
     :return Path: the path to the directory containing the text examples
     """
     target_dir = Path.cwd() if target_dir is None else Path(target_dir)
@@ -189,12 +207,19 @@ def saves_summary(summarize_output, outpath: str or Path = None, add_signature=T
 
     saves_summary - save the summary generated from summarize_via_tokenbatches() to a text file
 
+    :param list summarize_output: the output from summarize_via_tokenbatches()
+    :param strorPath outpath: the path to the output file, defaults to the current working directory
+    :param bool add_signature: whether to add the signature to the output file, defaults to True
+    :return None:
+
+    Example in use:
             _summaries = summarize_via_tokenbatches(
               text,
               batch_length=token_batch_length,
               batch_stride=batch_stride,
               **settings,
           )
+            saves_summary(_summaries, outpath=outpath, add_signature=True)
     """
 
     outpath = (
