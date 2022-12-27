@@ -1,15 +1,16 @@
 import argparse
 import logging
 import pprint as pp
+import random
 from pathlib import Path
 
 import torch
+from cleantext import clean
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-from cleantext import clean
 
 from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
-from textsum.utils import setup_logging, get_mem_footprint
+from textsum.utils import get_mem_footprint, setup_logging
 
 
 def summarize_text_file(file_path, model, tokenizer, **kwargs):
