@@ -5,21 +5,21 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 
-def load_model_and_tokenizer(model_name):
+def load_model_and_tokenizer(model_name: str, use_cuda: bool = True):
     """
     load_model_and_tokenizer - a function that loads a model and tokenizer from huggingface
 
     Args:
-        model_name (str): the name of the model to load
+        model_name (str): the name of the model to load from huggingface
+        use_cuda (bool, optional): whether to use cuda. Defaults to True.
     Returns:
         AutoModelForSeq2SeqLM: the model
         AutoTokenizer: the tokenizer
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
+    logging.debug(f"loading model {model_name} to {device}")
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_name,
-        # low_cpu_mem_usage=True,
-        # use_cache=False,
     ).to(device)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
