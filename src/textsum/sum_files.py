@@ -3,47 +3,52 @@ import logging
 import pprint as pp
 import random
 from pathlib import Path
+import warnings
 
 import torch
 from cleantext import clean
 from tqdm.auto import tqdm
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
+from textsum.summarize import (
+    load_model_and_tokenizer,
+    save_params,
+    summarize_via_tokenbatches,
+)
 from textsum.utils import get_mem_footprint, setup_logging, postprocess_booksummary
 
 
 def summarize_text_file(
-    file_path,
+    file_path: str or Path,
     model,
     tokenizer,
-    batch_length: int = 2048,
+    batch_length: int = 4096,
     batch_stride: int = 16,
     lowercase: bool = True,
     **kwargs,
-):
+) -> dict:
     """
-    summarize_text_file - given a file path, return a summary of the file
+    summarize_text_file - given a file path, summarize the text in the file
 
-    Args:
-        file_path (str): the path to the file to summarize
-        model (): the model to use for summarization
-        tokenizer (): the tokenizer to use for summarization
-        kw
-
-    Returns:
-        dict: a dictionary containing the summary and other information
+    :param str or Path file_path: the path to the file to summarize
+    :param model: the model to use for summarization
+    :param tokenizer: the tokenizer to use for summarization
+    :param int batch_length: length of each batch in tokens to summarize, defaults to 4096
+    :param int batch_stride: stride between batches in tokens, defaults to 16
+    :param bool lowercase: whether to lowercase the text before summarizing, defaults to True
+    :return: a dictionary containing the summary and other information
     """
     file_path = Path(file_path)
-
     ALLOWED_EXTENSIONS = [".txt", ".md", ".rst", ".py", ".ipynb"]
     assert (
         file_path.exists() and file_path.suffix in ALLOWED_EXTENSIONS
     ), f"File {file_path} does not exist or is not a text file"
 
+    logging.info(f"Summarizing {file_path}")
     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         text = clean(f.read(), lower=lowercase, no_line_breaks=True)
-
+    logging.debug(
+        f"Text length: {len(text)}. batch length: {batch_length} batch stride: {batch_stride}"
+    )
     summary_data = summarize_via_tokenbatches(
         input_text=text,
         model=model,
@@ -52,35 +57,58 @@ def summarize_text_file(
         batch_stride=batch_stride,
         **kwargs,
     )
-
+    logging.info(f"Finished summarizing {file_path}")
     return summary_data
 
 
 def process_summarization(
-    summary_data,
-    file_path,
+    summary_data: dict,
+    target_file: str or Path,
     custom_phrases: list = None,
-):
-    sum_text = [postprocess_booksummary(s["summary"][0]) for s in summary_data]
+    save_scores: bool = True,
+) -> None:
+    """
+    process_summarization - given a dictionary of summary data, save the summary to a file
+
+    :param dict summary_data: a dictionary containing the summary and other information (output from summarize_text_file)
+    :param str or Path target_file: the path to the file to save the summary to
+    :param list custom_phrases: a list of custom phrases to remove from each summary (relevant for dataset specific repeated phrases)
+    :param bool save_scores: whether to write the scores to a file
+    """
+    target_file = Path(target_file).resolve()
+    if target_file.exists():
+        warnings.warn(f"File {target_file} exists, overwriting")
+
+    sum_text = [
+        postprocess_booksummary(
+            s["summary"][0],
+            custom_phrases=custom_phrases,
+        )
+        for s in summary_data
+    ]
     sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
     scores_text = "\n".join(sum_scores)
     full_summary = "\n\t".join(sum_text)
 
     with open(
-        file_path,
+        target_file,
         "w",
     ) as fo:
 
         fo.writelines(full_summary)
-    with open(
-        file_path,
-        "a",
-    ) as fo:
 
-        fo.write("\n" * 3)
-        fo.write(f"\n\nSection Scores for {f.name}:\n")
-        fo.writelines(scores_text)
-        fo.write("\n\n---\n")
+    if save_scores:
+        with open(
+            target_file,
+            "a",
+        ) as fo:
+
+            fo.write("\n" * 3)
+            fo.write(f"\n\nSection Scores for {fo.stem}:\n")
+            fo.writelines(scores_text)
+            fo.write("\n\n---\n")
+
+    logging.info(f"Saved summary to {target_file}")
 
 
 def get_parser():
@@ -109,11 +137,11 @@ def get_parser():
         "-m",
         "--model_name",
         type=str,
-        default="sshleifer/distilbart-xsum-12-6",
+        default="pszemraj/long-t5-tglobal-base-16384-book-summary",
         help="the name of the model to use for summarization",
     )
     parser.add_argument(
-        "-bs",
+        "-batch",
         "--batch_length",
         target="batch_length",
         type=int,
@@ -121,22 +149,32 @@ def get_parser():
         help="the length of each batch",
     )
     parser.add_argument(
+        "-stride",
         "--batch_stride",
         type=int,
         default=16,
         help="the stride of each batch",
     )
     parser.add_argument(
+        "-nb",
         "--num_beams",
         type=int,
         default=4,
         help="the number of beams to use for beam search",
     )
     parser.add_argument(
+        "-l2",
         "--length_penalty",
         type=float,
         default=0.8,
-        help="the length penalty to use for beam search",
+        help="the length penalty to use for decoding",
+    )
+    parser.add_argument(
+        "-r2",
+        "--repetition_penalty",
+        type=float,
+        default=2.5,
+        help="the repetition penalty to use for beam search",
     )
     parser.add_argument(
         "--no_cuda",
@@ -162,15 +200,23 @@ def get_parser():
         "-enc_ngram",
         "--encoder_no_repeat_ngram_size",
         type=int,
-        default=3,
+        default=4,
         target="encoder_no_repeat_ngram_size",
-        help="the encoder no repeat ngram size (from source)",
+        help="encoder no repeat ngram size (input text). smaller values mean more unique summaries",
+    )
+    parser.add_argument(
+        "-dec_ngram",
+        "--no_repeat_ngram_size",
+        type=int,
+        default=3,
+        target="no_repeat_ngram_size",
+        help="the decoder no repeat ngram size (output text)",
     )
     parser.add_argument(
         "--no_early_stopping",
         action="store_false",
         target="early_stopping",
-        help="do not use early stopping when generating summaries with beam search",
+        help="whether to use early stopping. this disables the early_stopping value",
     )
     parser.add_argument(
         "--shuffle",
@@ -205,9 +251,16 @@ def get_parser():
 
 
 def main(args):
+    """
+    main - the main function for the script
 
-    logging.info(f"args: {pp.pformat(args)}")
+    :param argparse.Namespace args: the arguments for the script
+    """
+
     setup_logging(args.loglevel, args.logfile)
+    logging.info("starting sum_files.py")
+    logging.info(f"args: {pp.pformat(args)}")
+
     device = torch.device(
         "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
     )
@@ -223,11 +276,12 @@ def main(args):
         "min_length": args.min_length,
         "max_length": int(args.max_length_ratio * args.batch_length),
         "encoder_no_repeat_ngram_size": args.encoder_no_repeat_ngram_size,
-        "repetition_penalty": 2.5,
+        "no_repeat_ngram_size": args.no_repeat_ngram_size,
+        "repetition_penalty": args.repetition_penalty,
         "num_beams": args.num_beams,
         "num_beam_groups": 1,
         "length_penalty": args.length_penalty,
-        "early_stopping": True,
+        "early_stopping": args.early_stopping,
         "do_sample": False,
     }
     # get the input files
@@ -237,10 +291,42 @@ def main(args):
         logging.info("shuffling input files")
         random.SystemRandom().shuffle(input_files)
 
+    # get the output directory
+    output_dir = (
+        Path(args.output_dir)
+        if args.output_dir
+        else Path(args.input_dir) / "summarized"
+    )
+    output_dir.mkdir(exist_ok=True, parents=True)
+
+    # get the batches
+    for f in tqdm(input_files):
+
+        outpath = output_dir / f"{f.stem}.summary.txt"
+        summary_data = summarize_text_file(
+            f,
+            model,
+            tokenizer,
+            device,
+            batch_length=args.batch_length,
+            batch_stride=args.batch_stride,
+            **params,
+        )
+        process_summarization(
+            summary_data=summary_data, target_file=outpath, save_scores=True
+        )
+
+    logging.info("finished summarizing files")
+    save_params(params=params, output_dir=output_dir, hf_tag=args.model_name)
+
+    logging.info("finished sum_files.py")
+
 
 def run():
-    parser = get_parser()
-    args = parser.parse_args()
+    """
+    run - main entry point for the script
+    """
+    args = get_parser().parse_args()
     main(args)
 
 
