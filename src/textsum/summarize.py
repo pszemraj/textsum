@@ -1,8 +1,12 @@
+import json
 import logging
+from pathlib import Path
 
 import torch
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+from textsum.utils import get_timestamp
 
 
 def load_model_and_tokenizer(model_name: str, use_cuda: bool = True):
@@ -63,6 +67,7 @@ def summarize_and_score(
             **kwargs,
         )
     else:
+        # this is for LED etc.
         summary_pred_ids = model.generate(
             input_ids,
             attention_mask=attention_mask,
@@ -85,7 +90,7 @@ def summarize_via_tokenbatches(
     input_text: str,
     model,
     tokenizer,
-    batch_length=2048,
+    batch_length=4096,
     batch_stride=16,
     **kwargs,
 ):
@@ -96,7 +101,7 @@ def summarize_via_tokenbatches(
         input_text (str): the text to summarize
         model (): the model to use for summarizationz
         tokenizer (): the tokenizer to use for summarization
-        batch_length (int, optional): the length of each batch. Defaults to 2048.
+        batch_length (int, optional): the length of each batch. Defaults to 4096.
         batch_stride (int, optional): the stride of each batch. Defaults to 16. The stride is the number of tokens that overlap between batches.
 
     Returns:
@@ -147,3 +152,35 @@ def summarize_via_tokenbatches(
     pbar.close()
 
     return gen_summaries
+
+
+def save_params(
+    params: dict,
+    output_dir: str or Path,
+    hf_tag: str = None,
+    verbose: bool = False,
+) -> None:
+    """
+    save_params - save the parameters of the run to a json file
+
+    :param dict params: parameters to save
+    :param str or Path output_dir: directory to save the parameters to
+    :param str hf_tag: the model tag on huggingface
+    :param bool verbose: whether to log the parameters
+
+    :return: None
+    """
+    output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
+    session_settings = params
+    session_settings["huggingface-model-tag"] = "" if hf_tag is None else hf_tag
+    session_settings["date-run"] = get_timestamp()
+
+    metadata_path = output_dir / "summarization-parameters.json"
+    logging.info(f"Saving parameters to {metadata_path}")
+    with open(metadata_path, "w") as write_file:
+        json.dump(session_settings, write_file)
+
+    logging.debug(f"Saved parameters to {metadata_path}")
+    if verbose:
+        # log the parameters
+        logging.info(f"parameters: {session_settings}")
