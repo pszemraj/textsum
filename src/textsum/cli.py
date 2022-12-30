@@ -118,14 +118,9 @@ def get_parser():
     :return argparse.ArgumentParser: the argument parser
     """
     parser = argparse.ArgumentParser(
-        conflict_handler="resolve",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "input_dir",
-        type=str,
-        help="the directory containing the input files",
-    )
+
     parser.add_argument(
         "--output_dir",
         type=str,
@@ -182,7 +177,6 @@ def get_parser():
         help="flag to not use cuda if available",
     )
     parser.add_argument(
-        "-lr",
         "-length_ratio",
         "--max_length_ratio",
         target="max_length_ratio",
@@ -191,6 +185,7 @@ def get_parser():
         help="the maximum length of the summary as a ratio of the batch length",
     )
     parser.add_argument(
+        "-ml",
         "--min_length",
         type=int,
         default=8,
@@ -246,6 +241,12 @@ def get_parser():
         type=str,
         default=None,
         help="path to the log file. this will set loglevel to INFO (if not set) and write to the file",
+    )
+    parser.add_argument(
+        "input_dir",
+        type=str,
+        help="the directory containing the input files",
+        target="input_dir",
     )
     return parser
 
@@ -304,10 +305,9 @@ def main(args):
 
         outpath = output_dir / f"{f.stem}.summary.txt"
         summary_data = summarize_text_file(
-            f,
-            model,
-            tokenizer,
-            device,
+            file_path=f,
+            model=model,
+            tokenizer=tokenizer,
             batch_length=args.batch_length,
             batch_stride=args.batch_stride,
             **params,
@@ -326,7 +326,9 @@ def run():
     """
     run - main entry point for the script
     """
-    args = get_parser().parse_args()
+
+    parser = get_parser()
+    args = parser.parse_args()
     main(args)
 
 
