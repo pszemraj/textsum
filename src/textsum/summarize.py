@@ -26,7 +26,7 @@ class Summarizer:
         is_general_attention_model: bool = True,
         token_batch_length: int = 2048,
         batch_stride: int = 16,
-        max_len_ratio: float = 0.25,
+        max_length_ratio: float = 0.25,
         **kwargs,
     ):
         """
@@ -37,7 +37,7 @@ class Summarizer:
         :param bool is_general_attention_model: whether the model is a general attention model, defaults to True
         :param int token_batch_length: the amount of tokens to process in a batch, defaults to 2048
         :param int batch_stride: the amount of tokens to stride the batch by, defaults to 16
-        :param float max_len_ratio: the ratio of the token_batch_length to use as the max_length for the model, defaults to 0.25
+        :param float max_length_ratio: the ratio of the token_batch_length to use as the max_length for the model, defaults to 0.25
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
@@ -53,11 +53,11 @@ class Summarizer:
         # set batch processing parameters
         self.token_batch_length = token_batch_length
         self.batch_stride = batch_stride
-        self.max_len_ratio = max_len_ratio
+        self.max_len_ratio = max_length_ratio
 
         self.inference_params = {
             "min_length": 8,
-            "max_length": int(token_batch_length * max_len_ratio),
+            "max_length": int(token_batch_length * max_length_ratio),
             "no_repeat_ngram_size": 3,
             "encoder_no_repeat_ngram_size": 4,
             "repetition_penalty": 2.5,
@@ -208,7 +208,7 @@ class Summarizer:
 
         return gen_summaries
 
-    def process_output(
+    def save_summary(
         self,
         summary_data: dict,
         target_file: str or Path,
@@ -218,7 +218,7 @@ class Summarizer:
         return_string: bool = False,
     ) -> None:
         """
-        process_output - a function that takes the output of summarize_via_tokenbatches and saves it to a file after postprocessing
+        save_summary - a function that takes the output of summarize_via_tokenbatches and saves it to a file after postprocessing
 
         :param dict summary_data: output of summarize_via_tokenbatches containing the summary and score for each batch
         :param str or Path target_file: the file to save the summary to
@@ -268,7 +268,7 @@ class Summarizer:
 
         logging.info(f"Saved summary to {target_file.resolve()}")
 
-    def summarize_text_file(
+    def summarize_file(
         self,
         file_path: str or Path,
         output_dir: str or Path = None,
@@ -278,11 +278,11 @@ class Summarizer:
         **kwargs,
     ) -> Path:
         """
-        summarize_text_file - a function that takes a text file and returns a summary
+        summarize_file - a function that takes a text file and returns a summary
 
-        :param strorPath file_path: _description_
-        :param strorPath output_dir: _description_, defaults to None
-        :param bool lowercase: _description_, defaults to False
+        :param str or Path file_path: the path to the text file
+        :param str or Path output_dir: the directory to save the summary to, defaults to None (current working directory)
+        :param bool lowercase: whether to lowercase the text prior to summarization, defaults to False
 
         :return Path: the path to the summary file
         """
@@ -303,7 +303,7 @@ class Summarizer:
             **kwargs,
         )
 
-        self.process_output(
+        self.save_summary(
             gen_summaries,
             output_file,
         )

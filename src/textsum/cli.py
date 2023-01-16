@@ -1,6 +1,5 @@
 """
 cli.py - a module containing functions for the command line interface (to run the summarization on a directory of files)
-        #TODO: add a function to summarize a single file
 
 usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
                    [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY] [--no_cuda] [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
@@ -19,113 +18,12 @@ import logging
 import pprint as pp
 import random
 import sys
-import warnings
 from pathlib import Path
 
-import torch
-from cleantext import clean
 from tqdm.auto import tqdm
 
-from textsum.summarize import (
-    load_model_and_tokenizer,
-    save_params,
-    summarize_via_tokenbatches,
-)
-from textsum.utils import get_mem_footprint, postprocess_booksummary, setup_logging
-
-
-def summarize_text_file(
-    file_path: str or Path,
-    model,
-    tokenizer,
-    batch_length: int = 4096,
-    batch_stride: int = 16,
-    lowercase: bool = False,
-    **kwargs,
-) -> dict:
-    """
-    summarize_text_file - given a file path, summarize the text in the file
-
-    :param str or Path file_path: the path to the file to summarize
-    :param model: the model to use for summarization
-    :param tokenizer: the tokenizer to use for summarization
-    :param int batch_length: length of each batch in tokens to summarize, defaults to 4096
-    :param int batch_stride: stride between batches in tokens, defaults to 16
-    :param bool lowercase: whether to lowercase the text before summarizing, defaults to False
-    :return: a dictionary containing the summary and other information
-    """
-    file_path = Path(file_path)
-    ALLOWED_EXTENSIONS = [".txt", ".md", ".rst", ".py", ".ipynb"]
-    assert (
-        file_path.exists() and file_path.suffix in ALLOWED_EXTENSIONS
-    ), f"File {file_path} does not exist or is not a text file"
-
-    logging.info(f"Summarizing {file_path}")
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-        text = clean(f.read(), lower=lowercase, no_line_breaks=True)
-    logging.debug(
-        f"Text length: {len(text)}. batch length: {batch_length} batch stride: {batch_stride}"
-    )
-    summary_data = summarize_via_tokenbatches(
-        input_text=text,
-        model=model,
-        tokenizer=tokenizer,
-        batch_length=batch_length,
-        batch_stride=batch_stride,
-        **kwargs,
-    )
-    logging.info(f"Finished summarizing {file_path}")
-    return summary_data
-
-
-def process_summarization(
-    summary_data: dict,
-    target_file: str or Path,
-    custom_phrases: list = None,
-    save_scores: bool = True,
-) -> None:
-    """
-    process_summarization - given a dictionary of summary data, save the summary to a file
-
-    :param dict summary_data: a dictionary containing the summary and other information (output from summarize_text_file)
-    :param str or Path target_file: the path to the file to save the summary to
-    :param list custom_phrases: a list of custom phrases to remove from each summary (relevant for dataset specific repeated phrases)
-    :param bool save_scores: whether to write the scores to a file
-    """
-    target_file = Path(target_file).resolve()
-    if target_file.exists():
-        warnings.warn(f"File {target_file} exists, overwriting")
-
-    sum_text = [
-        postprocess_booksummary(
-            s["summary"][0],
-            custom_phrases=custom_phrases,
-        )
-        for s in summary_data
-    ]
-    sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
-    scores_text = "\n".join(sum_scores)
-    full_summary = "\n\t".join(sum_text)
-
-    with open(
-        target_file,
-        "w",
-    ) as fo:
-
-        fo.writelines(full_summary)
-
-    if save_scores:
-        with open(
-            target_file,
-            "a",
-        ) as fo:
-
-            fo.write("\n" * 3)
-            fo.write(f"\n\nSection Scores for {target_file.stem}:\n")
-            fo.writelines(scores_text)
-            fo.write("\n\n---\n")
-
-    logging.info(f"Saved summary to {target_file.resolve()}")
+from textsum.summarize import Summarizer
+from textsum.utils import setup_logging
 
 
 def get_parser():
@@ -290,22 +188,8 @@ def main(args):
     logging.info("starting summarization")
     logging.info(f"args: {pp.pformat(args)}")
 
-    device = torch.device(
-        "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
-    )
-    logging.info(f"using device: {device}")
-    # load the model and tokenizer
-    model, tokenizer = load_model_and_tokenizer(
-        args.model_name, use_cuda=not args.no_cuda
-    )
-
-    logging.info(f"model size: {get_mem_footprint(model)}")
-    # move the model to the device
-    model.to(device)
-
     params = {
         "min_length": args.min_length,
-        "max_length": int(args.max_length_ratio * args.batch_length),
         "encoder_no_repeat_ngram_size": args.encoder_no_repeat_ngram_size,
         "no_repeat_ngram_size": args.no_repeat_ngram_size,
         "repetition_penalty": args.repetition_penalty,
@@ -315,8 +199,19 @@ def main(args):
         "early_stopping": args.early_stopping,
         "do_sample": False,
     }
+
+    summarizer = Summarizer(
+        model_name_or_path=args.model_name,
+        use_cuda=not args.no_cuda,
+        token_batch_length=args.batch_length,
+        batch_stride=args.batch_stride,
+        max_length_ratio=args.max_length_ratio,
+        **params,
+    )
+
     # get the input files
     input_files = list(Path(args.input_dir).glob("*.txt"))
+    logging.info(f"found {len(input_files)} input files")
 
     if args.shuffle:
         logging.info("shuffling input files")
@@ -333,23 +228,14 @@ def main(args):
     # get the batches
     for f in tqdm(input_files):
 
-        outpath = output_dir / f"{f.stem}.summary.txt"
-        summary_data = summarize_text_file(
-            file_path=f,
-            model=model,
-            tokenizer=tokenizer,
-            batch_length=args.batch_length,
-            batch_stride=args.batch_stride,
-            lowercase=args.lowercase,
-            **params,
+        summary_data = summarizer.summarize_file(
+            file_path=f, output_dir=output_dir, lowercase=args.lowercase
         )
-        process_summarization(
-            summary_data=summary_data, target_file=outpath, save_scores=True
-        )
+        _out_path = summarizer.save_summary(summary_data)
+        logging.debug(f"saved summary to {_out_path}")
 
     logging.info(f"finished summarization loop - output dir: {output_dir.resolve()}")
-    save_params(params=params, output_dir=output_dir, hf_tag=args.model_name)
-
+    summarizer.save_params(output_dir=output_dir, hf_tag=args.model_name)
     logging.info("finished summarizing files")
 
 
