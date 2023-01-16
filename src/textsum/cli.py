@@ -118,14 +118,15 @@ def get_parser():
     :return argparse.ArgumentParser: the argument parser
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="Summarize text files",
     )
 
     parser.add_argument(
+        "-o",
         "--output_dir",
         type=str,
         default=None,
-        target="output_dir",
+        dest="output_dir",
         help="directory to write the output files (if None, writes to input_dir/summarized)",
     )
     parser.add_argument(
@@ -138,7 +139,7 @@ def get_parser():
     parser.add_argument(
         "-batch",
         "--batch_length",
-        target="batch_length",
+        dest="batch_length",
         type=int,
         default=4096,
         help="the length of each batch",
@@ -179,7 +180,7 @@ def get_parser():
     parser.add_argument(
         "-length_ratio",
         "--max_length_ratio",
-        target="max_length_ratio",
+        dest="max_length_ratio",
         type=int,
         default=0.25,
         help="the maximum length of the summary as a ratio of the batch length",
@@ -196,7 +197,7 @@ def get_parser():
         "--encoder_no_repeat_ngram_size",
         type=int,
         default=4,
-        target="encoder_no_repeat_ngram_size",
+        dest="encoder_no_repeat_ngram_size",
         help="encoder no repeat ngram size (input text). smaller values mean more unique summaries",
     )
     parser.add_argument(
@@ -204,13 +205,13 @@ def get_parser():
         "--no_repeat_ngram_size",
         type=int,
         default=3,
-        target="no_repeat_ngram_size",
+        dest="no_repeat_ngram_size",
         help="the decoder no repeat ngram size (output text)",
     )
     parser.add_argument(
         "--no_early_stopping",
         action="store_false",
-        target="early_stopping",
+        dest="early_stopping",
         help="whether to use early stopping. this disables the early_stopping value",
     )
     parser.add_argument(
@@ -246,8 +247,14 @@ def get_parser():
         "input_dir",
         type=str,
         help="the directory containing the input files",
-        target="input_dir",
+        dest="input_dir",
     )
+
+    # if there are no args, print the help
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     return parser
 
 
