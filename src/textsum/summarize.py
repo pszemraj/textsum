@@ -294,7 +294,7 @@ class Summarizer:
         output_file = output_dir / f"{file_path.stem}_summary.txt"
 
         with open(file_path, "r") as f:
-            text = clean(f.read(), lowercase=lowercase)
+            text = clean(f.read(), lower=lowercase)
 
         gen_summaries = self.summarize_via_tokenbatches(
             text,
