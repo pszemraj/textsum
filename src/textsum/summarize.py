@@ -3,13 +3,15 @@ summarize.py - a module that contains functions for summarizing text
 """
 import json
 import logging
+import warnings
 from pathlib import Path
 
 import torch
+from cleantext import clean
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-from textsum.utils import get_timestamp
+from textsum.utils import get_timestamp, postprocess_booksummary
 
 
 class Summarizer:
@@ -75,6 +77,7 @@ class Summarizer:
                 )
 
     def set_inference_params(self, new_params: dict):
+        """update the inference parameters with new parameters"""
         for key, value in new_params.items():
             if key in self.inference_params:
                 self.inference_params[key] = value
@@ -84,6 +87,7 @@ class Summarizer:
                 )
 
     def get_inference_params(self):
+        """get the inference parameters currently being used"""
         return self.inference_params
 
     def summarize_and_score(self, ids, mask, **kwargs):
@@ -138,8 +142,6 @@ class Summarizer:
     def summarize_via_tokenbatches(
         self,
         input_text: str,
-        model,
-        tokenizer,
         batch_length=None,
         batch_stride=None,
         **kwargs,
@@ -170,7 +172,7 @@ class Summarizer:
 
         params = self.get_inference_params()
 
-        encoded_input = tokenizer(
+        encoded_input = self.tokenizer(
             input_text,
             padding="max_length",
             truncation=True,
@@ -190,8 +192,6 @@ class Summarizer:
             result, score = self.summarize_and_score(
                 ids=_id,
                 mask=_mask,
-                model=model,
-                tokenizer=tokenizer,
                 **params,
             )
             score = round(float(score), 4)
@@ -207,6 +207,108 @@ class Summarizer:
         pbar.close()
 
         return gen_summaries
+
+    def process_output(
+        self,
+        summary_data: dict,
+        target_file: str or Path,
+        postprocess: bool = True,
+        custom_phrases: list = None,
+        save_scores: bool = True,
+        return_string: bool = False,
+    ) -> None:
+        """
+        process_output - a function that takes the output of summarize_via_tokenbatches and saves it to a file after postprocessing
+
+        :param dict summary_data: output of summarize_via_tokenbatches containing the summary and score for each batch
+        :param str or Path target_file: the file to save the summary to
+        :param bool postprocess: whether to postprocess the summary, defaults to True
+        :param list custom_phrases: a list of custom phrases to use in postprocessing, defaults to None
+        :param bool save_scores: whether to save the scores for each batch, defaults to True
+        :param bool return_string: whether to return the summary as a string, defaults to False
+        """
+
+        target_file = Path(target_file).resolve()
+        if target_file.exists():
+            warnings.warn(f"File {target_file} exists, overwriting")
+
+        if postprocess:
+            sum_text = [
+                postprocess_booksummary(
+                    s["summary"][0],
+                    custom_phrases=custom_phrases,
+                )
+                for s in summary_data
+            ]
+        else:
+            sum_text = [s["summary"][0] for s in summary_data]
+
+        sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
+        scores_text = "\n".join(sum_scores)
+        full_summary = "\n\t".join(sum_text)
+        if return_string:
+            return full_summary
+        with open(
+            target_file,
+            "w",
+        ) as fo:
+
+            fo.writelines(full_summary)
+
+        if save_scores:
+            with open(
+                target_file,
+                "a",
+            ) as fo:
+
+                fo.write("\n" * 3)
+                fo.write(f"\n\nSection Scores for {target_file.stem}:\n")
+                fo.writelines(scores_text)
+                fo.write("\n\n---\n")
+
+        logging.info(f"Saved summary to {target_file.resolve()}")
+
+    def summarize_text_file(
+        self,
+        file_path: str or Path,
+        output_dir: str or Path = None,
+        batch_length=None,
+        batch_stride=None,
+        lowercase: bool = False,
+        **kwargs,
+    ) -> Path:
+        """
+        summarize_text_file - a function that takes a text file and returns a summary
+
+        :param strorPath file_path: _description_
+        :param strorPath output_dir: _description_, defaults to None
+        :param bool lowercase: _description_, defaults to False
+
+        :return Path: the path to the summary file
+        """
+
+        logger = logging.getLogger(__name__)
+
+        file_path = Path(file_path)
+        output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
+        output_file = output_dir / f"{file_path.stem}_summary.txt"
+
+        with open(file_path, "r") as f:
+            text = clean(f.read(), lowercase=lowercase)
+
+        gen_summaries = self.summarize_via_tokenbatches(
+            text,
+            batch_length=batch_length,
+            batch_stride=batch_stride,
+            **kwargs,
+        )
+
+        self.process_output(
+            gen_summaries,
+            output_file,
+        )
+
+        return output_file
 
     def save_params(
         self,
