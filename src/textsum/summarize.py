@@ -21,18 +21,18 @@ class Summarizer:
 
     def __init__(
         self,
-        model_name_or_path: str,
+        model_name_or_path: str = "pszemraj/long-t5-tglobal-base-16384-book-summary",
         use_cuda: bool = True,
-        is_general_attention_model=True,
-        token_batch_length=2048,
-        batch_stride=16,
-        max_len_ratio=0.25,
+        is_general_attention_model: bool = True,
+        token_batch_length: int = 2048,
+        batch_stride: int = 16,
+        max_len_ratio: float = 0.25,
         **kwargs,
     ):
         """
         __init__ - initialize the Summarizer class
 
-        :param str model_name_or_path: the name or path of the model to load
+        :param str model_name_or_path: the name or path of the model to load, defaults to "pszemraj/long-t5-tglobal-base-16384-book-summary"
         :param bool use_cuda: whether to use cuda, defaults to True
         :param bool is_general_attention_model: whether the model is a general attention model, defaults to True
         :param int token_batch_length: the amount of tokens to process in a batch, defaults to 2048
