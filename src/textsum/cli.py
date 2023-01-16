@@ -2,8 +2,9 @@ import argparse
 import logging
 import pprint as pp
 import random
-from pathlib import Path
+import sys
 import warnings
+from pathlib import Path
 
 import torch
 from cleantext import clean
@@ -14,7 +15,7 @@ from textsum.summarize import (
     save_params,
     summarize_via_tokenbatches,
 )
-from textsum.utils import get_mem_footprint, setup_logging, postprocess_booksummary
+from textsum.utils import get_mem_footprint, postprocess_booksummary, setup_logging
 
 
 def summarize_text_file(
@@ -23,7 +24,7 @@ def summarize_text_file(
     tokenizer,
     batch_length: int = 4096,
     batch_stride: int = 16,
-    lowercase: bool = True,
+    lowercase: bool = False,
     **kwargs,
 ) -> dict:
     """
@@ -34,7 +35,7 @@ def summarize_text_file(
     :param tokenizer: the tokenizer to use for summarization
     :param int batch_length: length of each batch in tokens to summarize, defaults to 4096
     :param int batch_stride: stride between batches in tokens, defaults to 16
-    :param bool lowercase: whether to lowercase the text before summarizing, defaults to True
+    :param bool lowercase: whether to lowercase the text before summarizing, defaults to False
     :return: a dictionary containing the summary and other information
     """
     file_path = Path(file_path)
@@ -118,7 +119,8 @@ def get_parser():
     :return argparse.ArgumentParser: the argument parser
     """
     parser = argparse.ArgumentParser(
-        description="Summarize text files",
+        description="Summarize text files in a directory",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     parser.add_argument(
@@ -220,6 +222,11 @@ def get_parser():
         help="shuffle the input files before summarizing",
     )
     parser.add_argument(
+        "--lowercase",
+        action="store_true",
+        help="whether to lowercase the input text",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         dest="loglevel",
@@ -247,7 +254,6 @@ def get_parser():
         "input_dir",
         type=str,
         help="the directory containing the input files",
-        dest="input_dir",
     )
 
     # if there are no args, print the help
@@ -264,9 +270,8 @@ def main(args):
 
     :param argparse.Namespace args: the arguments for the script
     """
-
     setup_logging(args.loglevel, args.logfile)
-    logging.info("starting sum_files.py")
+    logging.info("starting summarization")
     logging.info(f"args: {pp.pformat(args)}")
 
     device = torch.device(
@@ -274,7 +279,9 @@ def main(args):
     )
     logging.info(f"using device: {device}")
     # load the model and tokenizer
-    model, tokenizer = load_model_and_tokenizer(args.model_name)
+    model, tokenizer = load_model_and_tokenizer(
+        args.model_name, use_cuda=not args.no_cuda
+    )
 
     logging.info(f"model size: {get_mem_footprint(model)}")
     # move the model to the device
@@ -317,16 +324,17 @@ def main(args):
             tokenizer=tokenizer,
             batch_length=args.batch_length,
             batch_stride=args.batch_stride,
+            lowercase=args.lowercase,
             **params,
         )
         process_summarization(
             summary_data=summary_data, target_file=outpath, save_scores=True
         )
 
-    logging.info("finished summarizing files")
+    logging.info(f"finished summarization loop - output dir: {output_dir.resolve()}")
     save_params(params=params, output_dir=output_dir, hf_tag=args.model_name)
 
-    logging.info("finished sum_files.py")
+    logging.info("finished summarizing files")
 
 
 def run():
