@@ -113,8 +113,8 @@ def summarize_via_tokenbatches(
     # log all input parameters
     if batch_length < 512:
         batch_length = 512
-        logging.warning("WARNING: batch_length was set to 512")
-    logging.debug(
+        logger.warning("WARNING: batch_length was set to 512")
+    logger.debug(
         f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
     )
     encoded_input = tokenizer(
@@ -149,7 +149,7 @@ def summarize_via_tokenbatches(
             "summary_score": score,
         }
         gen_summaries.append(_sum)
-        print(f"\t{result[0]}\nScore:\t{score}")
+        logger.debug(f"\n\t{result[0]}\nScore:\t{score}")
         pbar.update()
 
     pbar.close()
