@@ -16,6 +16,8 @@
 
 An extension/generalization of the [document summarization](<https://huggingface.co/spaces/pszemraj/document-summarization>) space on huggingface. The purpose of this package is to provide a simple interface for using summarization models on text documents of arbitrary length.
 
+⚠️ **WARNING**: _This package is a WIP and is not ready for production use. Some things may not work yet._ ⚠️
+
 ## Installation
 
 ```bash
@@ -77,7 +79,7 @@ This is currently a minimal demo, but it will be expanded in the future to accep
 
 - [ ] add argparse CLI for UI demo
 - [x] add CLI for summarization of all text files in a directory
-- [ ] API for summarization of text docs
+- [ ] python API for summarization of text docs
 - [ ] optimum inference integration
 - [ ] better documentation, details on improving performance (speed, quality, memory usage, etc.)
 
