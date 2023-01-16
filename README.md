@@ -20,11 +20,11 @@ An extension/generalization of the [document summarization](<https://huggingface
 
 ## Installation
 
+Install the package using pip:
+
 ```bash
-git clone https://github.com/pszemraj/textsum.git
-cd textsum
 # create a virtual environment (optional)
-pip install -e .
+pip install git+https://github.com/pszemraj/textsum.git
 ```
 
 The textsum package is now installed in your virtual environment. You can now use the CLI or UI demo (see [Usage](#usage)).
@@ -34,6 +34,9 @@ The textsum package is now installed in your virtual environment. You can now us
 To install all the dependencies _(includes PDF OCR, gradio UI demo)_, run:
 
 ```bash
+git clone https://github.com/pszemraj/textsum.git
+cd textsum
+# create a virtual environment (optional)
 pip install -e .[all]
 ```
 
