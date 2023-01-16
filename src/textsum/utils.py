@@ -36,10 +36,6 @@ def get_timestamp() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
-import re
-import subprocess
-
-
 def regex_gpu_name(input_text: str):
     """backup if not a100"""
 
@@ -54,7 +50,9 @@ def check_GPU(verbose=False):
     :param verbose: if true, print out which GPU was found if it is not an A100
     """
     # call nvidia-smi
-    nvidia_smi = subprocess.run(["nvidia-smi"], stdout=subprocess.PIPE)
+    nvidia_smi = subprocess.run(
+        ["nvidia-smi"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
+    )
     # convert to string
     nvidia_smi = nvidia_smi.stdout.decode("utf-8")
     search_past = "==============================="
@@ -71,25 +69,25 @@ def check_GPU(verbose=False):
     try:
         gpu_name = re.search(r"\w+-\w+-\w+", next_line).group()
     except AttributeError:
+        logging.debug("Could not find GPU name with initial regex")
         gpu_name = None
+
     if gpu_name is None:
         # try alternates
         try:
             gpu_name = regex_gpu_name(next_line)
         except Exception as e:
-            print(f"unable to lookup GPU from output:\t{e}")
+            logging.error(f"Could not find GPU name: {e}")
             return False
 
     if verbose:
         print(f"GPU found: {gpu_name}")
     # check if it is an A100
-    if "A100" in gpu_name:
-        return True
-    else:
-        return False
+    return bool("A100" in gpu_name)
 
 
 def cstr(s, color="black"):
+    """styles a string with a color"""
     return "<text style=color:{}>{}</text>".format(color, s)
 
 
@@ -136,7 +134,10 @@ def truncate_word_count(text, max_words=512):
     return processed
 
 
-def load_pdf_examples(src, filetypes=[".txt", ".pdf"]):
+PDF_TYPES = [".pdf", ".txt"]
+
+
+def load_pdf_examples(src, filetypes=PDF_TYPES):
     """
     load_examples - a helper function for the gradio module to load examples
 
