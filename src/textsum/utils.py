@@ -15,8 +15,6 @@ logging.basicConfig(
     datefmt="%m/%d/%Y %I:%M:%S",
 )
 
-from natsort import natsorted
-
 # ------------------------- #
 
 TEXT_EXAMPLE_URLS = {
@@ -30,8 +28,6 @@ TEXT_EXAMPLE_URLS = {
 def get_timestamp() -> str:
     """
     get_timestamp - get a timestamp for the current time
-    Returns:
-        str, the timestamp
     """
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -92,6 +88,7 @@ def cstr(s, color="black"):
 
 
 def color_print(text: str, c_id="pink"):
+    """helper function to print colored text to the terminal"""
 
     colormap = {
         "red": "\033[91m",
@@ -134,36 +131,6 @@ def truncate_word_count(text, max_words=512):
     return processed
 
 
-PDF_TYPES = [".pdf", ".txt"]
-
-
-def load_pdf_examples(src, filetypes=PDF_TYPES):
-    """
-    load_examples - a helper function for the gradio module to load examples
-
-    :param str or Path src: the path to the source directory
-    :param list filetypes: the filetypes to load, defaults to [".txt", ".pdf"]
-    :return: a list of examples
-    """
-    src = Path(src)
-    src.mkdir(exist_ok=True)
-
-    pdf_url = (
-        "https://www.dropbox.com/s/y92xy7o5qb88yij/all_you_need_is_attention.pdf?dl=1"
-    )
-    subprocess.run(["wget", pdf_url, "-O", src / "all_you_need_is_attention.pdf"])
-    examples = [f for f in src.iterdir() if f.suffix in filetypes]
-    examples = natsorted(examples)
-    # load the examples into a list
-    text_examples = []
-    for example in examples:
-        with open(example, "r") as f:
-            text = f.read()
-            text_examples.append([text, "base", 2, 1024, 0.7, 3.5, 3])
-
-    return text_examples
-
-
 def load_text_examples(
     urls: dict = TEXT_EXAMPLE_URLS, target_dir: str or Path = None
 ) -> Path:
@@ -183,7 +150,12 @@ def load_text_examples(
     return target_dir
 
 
-def load_example_filenames(example_path: str or Path, ext: list = [".txt", ".md"]):
+TEXT_EX_EXTENSIONS = [".txt", ".md"]
+
+
+def load_example_filenames(
+    example_path: str or Path, ext: list = TEXT_EX_EXTENSIONS
+) -> dict:
     """
     load_example_filenames - load the example filenames from a directory
 
@@ -203,15 +175,17 @@ def load_example_filenames(example_path: str or Path, ext: list = [".txt", ".md"
     return examples
 
 
-def saves_summary(summarize_output, outpath: str or Path = None, add_signature=True):
+def save_summary(
+    summarize_output, outpath: str or Path = None, write_scores=True
+) -> Path:
     """
 
-    saves_summary - save the summary generated from summarize_via_tokenbatches() to a text file
+    save_summary - save the summary generated from summarize_via_tokenbatches() to a text file
 
     :param list summarize_output: the output from summarize_via_tokenbatches()
     :param strorPath outpath: the path to the output file, defaults to the current working directory
-    :param bool add_signature: whether to add the signature to the output file, defaults to True
-    :return None:
+    :param bool write_scores: whether to write the scores to the output file, defaults to True
+    :return Path: the path to the output file
 
     Example in use:
             _summaries = summarize_via_tokenbatches(
@@ -220,7 +194,7 @@ def saves_summary(summarize_output, outpath: str or Path = None, add_signature=T
               batch_stride=batch_stride,
               **settings,
           )
-            saves_summary(_summaries, outpath=outpath, add_signature=True)
+            save_summary(_summaries, outpath=outpath, write_scores=True)
     """
 
     outpath = (
@@ -233,29 +207,20 @@ def saves_summary(summarize_output, outpath: str or Path = None, add_signature=T
     scores_text = "\n".join(sum_scores)
     full_summary = "\n\t".join(sum_text)
 
-    with open(
-        outpath,
-        "w",
-    ) as fo:
-        if add_signature:
-            fo.write(
-                "Generated with the Document Summarization space :) https://hf.co/spaces/pszemraj/document-summarization\n\n"
-            )
+    with open(outpath, "w", encoding="utf-8", errors="ignore") as fo:
         fo.writelines(full_summary)
-    with open(
-        outpath,
-        "a",
-    ) as fo:
+    if write_scores:
+        with open(outpath, "a", encoding="utf-8", errors="ignore") as fo:
 
-        fo.write("\n" * 3)
-        fo.write(f"\n\nSection Scores:\n")
-        fo.writelines(scores_text)
-        fo.write("\n\n---\n")
+            fo.write("\n" * 3)
+            fo.write(f"\n\nSection Scores:\n")
+            fo.writelines(scores_text)
+            fo.write("\n\n---\n")
 
     return outpath
 
 
-def setup_logging(loglevel, logfile=None):
+def setup_logging(loglevel, logfile=None) -> None:
     """Setup basic logging
         you will need something like this in your main script:
             parser.add_argument(
@@ -305,7 +270,7 @@ def setup_logging(loglevel, logfile=None):
         )
 
 
-def postprocess_booksummary(text: str, custom_phrases: list = None):
+def postprocess_booksummary(text: str, custom_phrases: list = None) -> str:
     """
     postprocess_booksummary - postprocess the book summary
 
