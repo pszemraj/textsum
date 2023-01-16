@@ -20,14 +20,15 @@ def load_model_and_tokenizer(model_name: str, use_cuda: bool = True):
         AutoModelForSeq2SeqLM: the model
         AutoTokenizer: the tokenizer
     """
+    logger = logging.getLogger(__name__)
     device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
-    logging.debug(f"loading model {model_name} to {device}")
+    logger.debug(f"loading model {model_name} to {device}")
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_name,
     ).to(device)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    logging.info(f"Loaded model {model_name} to {device}")
+    logger.info(f"Loaded model {model_name} to {device}")
     return model, tokenizer
 
 
@@ -107,12 +108,14 @@ def summarize_via_tokenbatches(
     Returns:
         str: the summary
     """
+
+    logger = logging.getLogger(__name__)
     # log all input parameters
     if batch_length < 512:
         batch_length = 512
-        print("WARNING: batch_length was set to 512")
-    print(
-        f"input parameters: {kwargs}, batch_length={batch_length}, batch_stride={batch_stride}"
+        logging.warning("WARNING: batch_length was set to 512")
+    logging.debug(
+        f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
     )
     encoded_input = tokenizer(
         input_text,

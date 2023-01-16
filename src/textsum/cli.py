@@ -105,11 +105,11 @@ def process_summarization(
         ) as fo:
 
             fo.write("\n" * 3)
-            fo.write(f"\n\nSection Scores for {fo.stem}:\n")
+            fo.write(f"\n\nSection Scores for {target_file.stem}:\n")
             fo.writelines(scores_text)
             fo.write("\n\n---\n")
 
-    logging.info(f"Saved summary to {target_file}")
+    logging.info(f"Saved summary to {target_file.resolve()}")
 
 
 def get_parser():

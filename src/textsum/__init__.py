@@ -1,3 +1,7 @@
+"""
+textsum - a package for summarizing text
+
+"""
 import sys
 
 from . import cli, utils
