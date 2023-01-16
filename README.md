@@ -14,13 +14,20 @@
 
 > utility for using transformers summarization models on text docs
 
-A continuation of the [document summarization](<https://huggingface.co/spaces/pszemraj/document-summarization>) space on huggingface.
+An extension/generalization of the [document summarization](<https://huggingface.co/spaces/pszemraj/document-summarization>) space on huggingface. The purpose of this package is to provide a simple interface for using summarization models on text documents of arbitrary length.
 
 ## Installation
 
 ```bash
+git clone https://github.com/pszemraj/textsum.git
+cd textsum
+# create a virtual environment (optional)
 pip install -e .
 ```
+
+The textsum package is now installed in your virtual environment. You can now use the CLI or UI demo (see [Usage](#usage)).
+
+### Full Installation _(PDF OCR, gradio UI demo)_
 
 To install all the dependencies _(includes PDF OCR, gradio UI demo)_, run:
 
@@ -30,21 +37,49 @@ pip install -e .[all]
 
 ## Usage
 
-### UI Demo
+### CLI
 
-Simply run the following command to start the UI demo:
+To summarize a directory of text files, run the following command:
 
 ```bash
-ts-ui
+textsum-dir /path/to/dir
 ```
 
-Other args to be added soon
+The following options are available:
+
+```
+usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
+                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY] [--no_cuda] [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
+                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE] [--no_early_stopping] [--shuffle]
+                   [--lowercase] [-v] [-vv] [-lf LOGFILE]
+                   input_dir
+```
+
+For more information, run:
+
+```bash
+textsum-dir --help
+```
+
+### UI Demo
+
+For convenience, a UI demo is provided using [gradio](https://gradio.app/). To run the demo, run the following command:
+
+```bash
+textsum-ui
+```
+
+This is currently a minimal demo, but it will be expanded in the future to accept other arguments and options.
+
+---
 
 ## Roadmap
 
 - [ ] add argparse CLI for UI demo
-- [ ] add CLI for summarization of all text files in a directory
+- [x] add CLI for summarization of all text files in a directory
 - [ ] API for summarization of text docs
+- [ ] optimum inference integration
+- [ ] better documentation, details on improving performance (speed, quality, memory usage, etc.)
 
 and other things I haven't thought of yet
 

@@ -1,3 +1,6 @@
+"""
+summarize.py - a module that contains functions for summarizing text
+"""
 import json
 import logging
 from pathlib import Path

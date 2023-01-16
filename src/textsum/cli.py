@@ -1,3 +1,19 @@
+"""
+cli.py - a module containing functions for the command line interface (to run the summarization on a directory of files)
+        #TODO: add a function to summarize a single file
+
+usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
+                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY] [--no_cuda] [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
+                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE] [--no_early_stopping] [--shuffle]
+                   [--lowercase] [-v] [-vv] [-lf LOGFILE]
+                   input_dir
+
+Summarize text files in a directory
+
+positional arguments:
+  input_dir             the directory containing the input files
+
+"""
 import argparse
 import logging
 import pprint as pp

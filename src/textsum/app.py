@@ -1,3 +1,6 @@
+"""
+app.py - a module to run the text summarization app (gradio interface)
+"""
 import contextlib
 import logging
 import os
