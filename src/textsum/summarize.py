@@ -1,29 +1,37 @@
+"""
+summarize.py - a module that contains functions for summarizing text
+"""
+import json
 import logging
+from pathlib import Path
 
 import torch
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
+from textsum.utils import get_timestamp
 
-def load_model_and_tokenizer(model_name):
+
+def load_model_and_tokenizer(model_name: str, use_cuda: bool = True):
     """
     load_model_and_tokenizer - a function that loads a model and tokenizer from huggingface
 
     Args:
-        model_name (str): the name of the model to load
+        model_name (str): the name of the model to load from huggingface
+        use_cuda (bool, optional): whether to use cuda. Defaults to True.
     Returns:
         AutoModelForSeq2SeqLM: the model
         AutoTokenizer: the tokenizer
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger = logging.getLogger(__name__)
+    device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
+    logger.debug(f"loading model {model_name} to {device}")
     model = AutoModelForSeq2SeqLM.from_pretrained(
         model_name,
-        # low_cpu_mem_usage=True,
-        # use_cache=False,
     ).to(device)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-    logging.info(f"Loaded model {model_name} to {device}")
+    logger.info(f"Loaded model {model_name} to {device}")
     return model, tokenizer
 
 
@@ -63,6 +71,7 @@ def summarize_and_score(
             **kwargs,
         )
     else:
+        # this is for LED etc.
         summary_pred_ids = model.generate(
             input_ids,
             attention_mask=attention_mask,
@@ -85,7 +94,7 @@ def summarize_via_tokenbatches(
     input_text: str,
     model,
     tokenizer,
-    batch_length=2048,
+    batch_length=4096,
     batch_stride=16,
     **kwargs,
 ):
@@ -96,18 +105,20 @@ def summarize_via_tokenbatches(
         input_text (str): the text to summarize
         model (): the model to use for summarizationz
         tokenizer (): the tokenizer to use for summarization
-        batch_length (int, optional): the length of each batch. Defaults to 2048.
+        batch_length (int, optional): the length of each batch. Defaults to 4096.
         batch_stride (int, optional): the stride of each batch. Defaults to 16. The stride is the number of tokens that overlap between batches.
 
     Returns:
         str: the summary
     """
+
+    logger = logging.getLogger(__name__)
     # log all input parameters
     if batch_length < 512:
         batch_length = 512
-        print("WARNING: batch_length was set to 512")
-    print(
-        f"input parameters: {kwargs}, batch_length={batch_length}, batch_stride={batch_stride}"
+        logger.warning("WARNING: batch_length was set to 512")
+    logger.debug(
+        f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
     )
     encoded_input = tokenizer(
         input_text,
@@ -141,9 +152,41 @@ def summarize_via_tokenbatches(
             "summary_score": score,
         }
         gen_summaries.append(_sum)
-        print(f"\t{result[0]}\nScore:\t{score}")
+        logger.debug(f"\n\t{result[0]}\nScore:\t{score}")
         pbar.update()
 
     pbar.close()
 
     return gen_summaries
+
+
+def save_params(
+    params: dict,
+    output_dir: str or Path,
+    hf_tag: str = None,
+    verbose: bool = False,
+) -> None:
+    """
+    save_params - save the parameters of the run to a json file
+
+    :param dict params: parameters to save
+    :param str or Path output_dir: directory to save the parameters to
+    :param str hf_tag: the model tag on huggingface
+    :param bool verbose: whether to log the parameters
+
+    :return: None
+    """
+    output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
+    session_settings = params
+    session_settings["huggingface-model-tag"] = "" if hf_tag is None else hf_tag
+    session_settings["date-run"] = get_timestamp()
+
+    metadata_path = output_dir / "summarization-parameters.json"
+    logging.info(f"Saving parameters to {metadata_path}")
+    with open(metadata_path, "w") as write_file:
+        json.dump(session_settings, write_file)
+
+    logging.debug(f"Saved parameters to {metadata_path}")
+    if verbose:
+        # log the parameters
+        logging.info(f"parameters: {session_settings}")

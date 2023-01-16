@@ -1,3 +1,6 @@
+"""
+app.py - a module to run the text summarization app (gradio interface)
+"""
 import contextlib
 import logging
 import os
@@ -19,7 +22,7 @@ from doctr.models import ocr_predictor
 
 from textsum.pdf2text import convert_PDF_to_Text
 from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
-from textsum.utils import load_example_filenames, saves_summary, truncate_word_count
+from textsum.utils import save_summary, truncate_word_count
 
 _here = Path(__file__).parent
 
@@ -137,7 +140,7 @@ def proc_submission(
     html += ""
 
     # save to file
-    saved_file = saves_summary(_summaries)
+    saved_file = save_summary(_summaries)
 
     return html, sum_text_out, scores_out, saved_file
 
@@ -156,6 +159,7 @@ def load_uploaded_file(file_obj, max_pages=20):
     # file_path = Path(file_obj[0].name)
 
     # check if mysterious file object is a list
+    global ocr_model
     if isinstance(file_obj, list):
         file_obj = file_obj[0]
     file_path = Path(file_obj.name)

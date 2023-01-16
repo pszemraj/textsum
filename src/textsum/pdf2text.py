@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
-easyocr.py - A wrapper for easyocr to convert pdf to images to text
+pdf2text.py - convert pdf files to text files (OCR). helper functions for textsum
 """
 
 import logging
