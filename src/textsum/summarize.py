@@ -245,26 +245,27 @@ class Summarizer:
     def save_summary(
         self,
         summary_data: dict,
-        target_file: str or Path,
+        target_file: str or Path = None,
         postprocess: bool = True,
         custom_phrases: list = None,
         save_scores: bool = True,
         return_string: bool = False,
-    ) -> None:
+    ):
         """
         save_summary - a function that takes the output of summarize_via_tokenbatches and saves it to a file after postprocessing
 
         :param dict summary_data: output of summarize_via_tokenbatches containing the summary and score for each batch
-        :param str or Path target_file: the file to save the summary to
+        :param str or Path target_file: the file to save the summary to, defaults to None
         :param bool postprocess: whether to postprocess the summary, defaults to True
         :param list custom_phrases: a list of custom phrases to use in postprocessing, defaults to None
         :param bool save_scores: whether to save the scores for each batch, defaults to True
         :param bool return_string: whether to return the summary as a string, defaults to False
-        """
 
-        target_file = Path(target_file).resolve()
-        if target_file.exists():
-            warnings.warn(f"File {target_file} exists, overwriting")
+        :return: None or str if return_string is True
+        """
+        assert (
+            target_file or return_string
+        ), "Must specify a target file or return_string=True"
 
         if postprocess:
             sum_text = [
@@ -280,8 +281,14 @@ class Summarizer:
         sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
         scores_text = "\n".join(sum_scores)
         full_summary = "\n\t".join(sum_text)
+
         if return_string:
             return full_summary
+
+        target_file = Path(target_file).resolve()
+        if target_file.exists():
+            warnings.warn(f"File {target_file} exists, overwriting")
+
         with open(
             target_file,
             "w",
@@ -302,6 +309,51 @@ class Summarizer:
 
         logging.info(f"Saved summary to {target_file.resolve()}")
 
+    def summarize_string(
+        self,
+        input_text: str,
+        batch_length=None,
+        batch_stride=None,
+        **kwargs,
+    ):
+        """
+        summarize_string - a function that takes a string and returns a summary
+
+        Args:
+            input_text (str): the text to summarize
+            batch_length (int, optional): overrides the default batch length. Defaults to None.
+            batch_stride (int, optional): overrides the default batch stride. Defaults to None.
+
+        Returns:
+            str: the summary
+        """
+
+        logger = logging.getLogger(__name__)
+        # log all input parameters
+        if batch_length and batch_length < 512:
+            logger.warning(
+                "WARNING: entered batch_length was too low at {batch_length}, resetting to 512"
+            )
+            batch_length = 512
+
+        logger.debug(
+            f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
+        )
+        # if received kwargs, update inference params
+        if kwargs:
+            self.set_inference_params(**kwargs)
+
+        params = self.get_inference_params()
+
+        gen_summaries = self.summarize_via_tokenbatches(
+            input_text,
+            batch_length=batch_length,
+            batch_stride=batch_stride,
+            **params,
+        )  # list of dicts
+
+        return self.save_summary(summary_data=gen_summaries, return_string=True)
+
     def summarize_file(
         self,
         file_path: str or Path,
@@ -320,8 +372,6 @@ class Summarizer:
 
         :return Path: the path to the summary file
         """
-
-        logger = logging.getLogger(__name__)
 
         file_path = Path(file_path)
         output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
