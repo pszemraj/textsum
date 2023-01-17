@@ -160,9 +160,12 @@ class Summarizer:
 
         logger = logging.getLogger(__name__)
         # log all input parameters
-        if batch_length < 512 and batch_length is not None:
+        if batch_length and batch_length < 512:
+            logger.warning(
+                "WARNING: entered batch_length was too low at {batch_length}, resetting to 512"
+            )
             batch_length = 512
-            logger.warning("WARNING: batch_length was set to 512")
+
         logger.debug(
             f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
         )
