@@ -105,7 +105,9 @@ class Summarizer:
         NOTE: if both new_params and config_file are provided, entries in the config_file will overwrite entries in new_params if they have the same key
         """
 
-        assert new_params or config_file, "must provide new_params or config_file"
+        assert (
+            new_params or config_file
+        ), "must provide new_params or config_file to set inference parameters"
 
         new_params = new_params or {}
         # load from config file if provided
@@ -118,8 +120,8 @@ class Summarizer:
                 if k in self.settable_inference_params
             }  # remove key:value pairs that start with config_metadata_id
             new_params.update(config_params)
-            logging.info(f"loaded inference parameters from {config_file}")
-            logging.debug(f"inference parameters: {new_params}")
+            self.logger.info(f"loaded inference parameters from {config_file}")
+            self.logger.debug(f"inference parameters: {new_params}")
 
         for key, value in new_params.items():
             if key in self.settable_inference_params:
@@ -135,14 +137,11 @@ class Summarizer:
 
     def summarize_and_score(self, ids, mask, **kwargs):
         """
-        summarize_and_score - given a batch of ids and a mask, return a summary and a score for the summary
+        summarize_and_score - summarize a batch of text and return the summary and output scores
 
-        Args:
-            ids (): the batch of ids
-            mask (): the attention mask for the batch
-
-        Returns:
-            str: the summary of the batch
+        :param ids: the token ids of the tokenized batch to summarize
+        :param mask: the attention mask of the tokenized batch to summarize
+        :return tuple: a tuple containing the summary and output scores
         """
 
         ids = ids[None, :]
@@ -185,20 +184,17 @@ class Summarizer:
     def summarize_via_tokenbatches(
         self,
         input_text: str,
-        batch_length=None,
-        batch_stride=None,
+        batch_length: int = None,
+        batch_stride: int = None,
         **kwargs,
     ):
         """
-        summarize_via_tokenbatches - a function that takes a string and returns a summary
+        summarize_via_tokenbatches - given a string of text, split it into batches of tokens and summarize each batch
 
-        Args:
-            input_text (str): the text to summarize
-            batch_length (int, optional): overrides the default batch length. Defaults to None.
-            batch_stride (int, optional): overrides the default batch stride. Defaults to None.
-
-        Returns:
-            str: the summary
+        :param str input_text: the text to summarize
+        :param int batch_length: number of tokens to include in each input batch, default None (self.token_batch_length)
+        :param int batch_stride: number of tokens to stride between batches, default None (self.token_batch_stride)
+        :return: a list of summaries, a list of scores, and a list of the input text for each batch
         """
 
         logger = logging.getLogger(__name__)
@@ -212,8 +208,8 @@ class Summarizer:
         logger.debug(
             f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
         )
-        # if received kwargs, update inference params
         if kwargs:
+            # if received kwargs, update inference params
             self.set_inference_params(**kwargs)
 
         params = self.get_inference_params()
@@ -231,7 +227,7 @@ class Summarizer:
         in_id_arr, att_arr = encoded_input.input_ids, encoded_input.attention_mask
 
         gen_summaries = []
-        pbar = tqdm(total=len(in_id_arr))
+        pbar = tqdm(total=len(in_id_arr), desc="Generating Summaries")
 
         for _id, _mask in zip(in_id_arr, att_arr):
 
@@ -319,25 +315,22 @@ class Summarizer:
                 fo.writelines(scores_text)
                 fo.write("\n\n---\n")
 
-        logging.info(f"Saved summary to {target_file.resolve()}")
+        self.logger.info(f"Saved summary to {target_file.resolve()}")
 
     def summarize_string(
         self,
         input_text: str,
-        batch_length=None,
-        batch_stride=None,
+        batch_length: int = None,
+        batch_stride: int = None,
         **kwargs,
-    ):
+    ) -> str:
         """
-        summarize_string - a function that takes a string and returns a summary
+        summarize_string - generate a summary for a string of text
 
-        Args:
-            input_text (str): the text to summarize
-            batch_length (int, optional): overrides the default batch length. Defaults to None.
-            batch_stride (int, optional): overrides the default batch stride. Defaults to None.
-
-        Returns:
-            str: the summary
+        :param str input_text: the text to summarize
+        :param int batch_length: number of tokens to use in each batch, defaults to None (self.token_batch_length)
+        :param int batch_stride: number of tokens to stride between batches, defaults to None (self.batch_stride)
+        :return str: the summary
         """
 
         logger = logging.getLogger(__name__)
@@ -357,7 +350,7 @@ class Summarizer:
             batch_length=batch_length,
             batch_stride=batch_stride,
             **kwargs,
-        )  # list of dicts
+        )
 
         return self.save_summary(summary_data=gen_summaries, return_string=True)
 
@@ -421,13 +414,12 @@ class Summarizer:
         session_settings = self.get_inference_params()
         session_settings["META_huggingface_model"] = "" if hf_tag is None else hf_tag
         session_settings["META_date"] = get_timestamp()
-        # TODO fix this due to bug when running summarization consecutively
         metadata_path = output_dir / "summarization_parameters.json"
-        logging.info(f"Saving parameters to {metadata_path}")
+        self.logger.info(f"Saving parameters to {metadata_path}")
         with open(metadata_path, "w") as write_file:
             json.dump(session_settings, write_file, indent=4)
 
         logging.debug(f"Saved parameters to {metadata_path}")
         if verbose:
             # log the parameters
-            logging.info(f"parameters: {session_settings}")
+            self.logger.info(f"parameters: {session_settings}")

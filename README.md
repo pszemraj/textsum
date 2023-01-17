@@ -102,7 +102,7 @@ This is currently a minimal demo, but it will be expanded in the future to accep
 - [ ] add argparse CLI for UI demo
 - [x] add CLI for summarization of all text files in a directory
 - [x] python API for summarization of text docs
-- [ ] optimum inference integration
+- [ ] optimum inference integration, LLM.int8 inference
 - [ ] better documentation, details on improving performance (speed, quality, memory usage, etc.)
 
 ++ other things I haven't thought of yet
