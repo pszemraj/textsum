@@ -228,11 +228,9 @@ def main(args):
     # get the batches
     for f in tqdm(input_files):
 
-        summary_data = summarizer.summarize_file(
+        _ = summarizer.summarize_file(
             file_path=f, output_dir=output_dir, lowercase=args.lowercase
         )
-        _out_path = summarizer.save_summary(summary_data)
-        logging.debug(f"saved summary to {_out_path}")
 
     logging.info(f"finished summarization loop - output dir: {output_dir.resolve()}")
     summarizer.save_params(output_dir=output_dir, hf_tag=args.model_name)

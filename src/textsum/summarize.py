@@ -339,17 +339,12 @@ class Summarizer:
         logger.debug(
             f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
         )
-        # if received kwargs, update inference params
-        if kwargs:
-            self.set_inference_params(**kwargs)
-
-        params = self.get_inference_params()
 
         gen_summaries = self.summarize_via_tokenbatches(
             input_text,
             batch_length=batch_length,
             batch_stride=batch_stride,
-            **params,
+            **kwargs,
         )  # list of dicts
 
         return self.save_summary(summary_data=gen_summaries, return_string=True)
