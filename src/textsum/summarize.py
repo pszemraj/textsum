@@ -16,7 +16,7 @@ from textsum.utils import get_timestamp, postprocess_booksummary
 
 class Summarizer:
     """
-    Summarizer - a class that contains functions for summarizing text
+    Summarizer - a class that contains functions for summarizing text with a transformers model
     """
 
     def __init__(
@@ -41,20 +41,34 @@ class Summarizer:
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
+
         self.device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
         self.logger.debug(f"loading model {model_name_or_path} to {self.device}")
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
             model_name_or_path,
         ).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        self.logger.info(f"Loaded model {model_name_or_path} to {self.device}")
         self.is_general_attention_model = is_general_attention_model
+
+        self.logger.info(f"Loaded model {model_name_or_path} to {self.device}")
 
         # set batch processing parameters
         self.token_batch_length = token_batch_length
         self.batch_stride = batch_stride
         self.max_len_ratio = max_length_ratio
 
+        self.settable_inference_params = [
+            "min_length",
+            "max_length",
+            "no_repeat_ngram_size",
+            "encoder_no_repeat_ngram_size",
+            "repetition_penalty",
+            "num_beams",
+            "num_beam_groups",
+            "length_penalty",
+            "early_stopping",
+            "do_sample",
+        ]  # list of inference parameters that can be set
         self.inference_params = {
             "min_length": 8,
             "max_length": int(token_batch_length * max_length_ratio),
@@ -66,10 +80,10 @@ class Summarizer:
             "length_penalty": 0.8,
             "early_stopping": True,
             "do_sample": False,
-        }
+        }  # default inference parameters
 
         for key, value in kwargs.items():
-            if key in self.inference_params:
+            if key in self.settable_inference_params:
                 self.inference_params[key] = value
             else:
                 self.logger.warning(
@@ -93,10 +107,8 @@ class Summarizer:
 
         assert new_params or config_file, "must provide new_params or config_file"
 
-        # load from config file if provided
-
         new_params = new_params or {}
-
+        # load from config file if provided
         if config_file:
             with open(config_file, "r") as f:
                 config_params = json.load(f)
@@ -110,7 +122,7 @@ class Summarizer:
             logging.debug(f"inference parameters: {new_params}")
 
         for key, value in new_params.items():
-            if key in self.inference_params:
+            if key in self.settable_inference_params:
                 self.inference_params[key] = value
             else:
                 self.logger.warning(
@@ -409,7 +421,7 @@ class Summarizer:
         session_settings = self.get_inference_params()
         session_settings["META_huggingface_model"] = "" if hf_tag is None else hf_tag
         session_settings["META_date"] = get_timestamp()
-
+        # TODO fix this due to bug when running summarization consecutively
         metadata_path = output_dir / "summarization_parameters.json"
         logging.info(f"Saving parameters to {metadata_path}")
         with open(metadata_path, "w") as write_file:
