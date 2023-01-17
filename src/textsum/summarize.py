@@ -76,8 +76,39 @@ class Summarizer:
                     f"{key} is not a supported inference parameter, ignoring"
                 )
 
-    def set_inference_params(self, new_params: dict):
-        """update the inference parameters with new parameters"""
+    def set_inference_params(
+        self,
+        new_params: dict = None,
+        config_file: str or Path = None,
+        config_metadata_id: str = "META_",
+    ):
+        """
+        set_inference_params - update the inference parameters to use when summarizing text
+
+        :param dict new_params: a dictionary of new inference parameters to use, defaults to None
+        :param str or Path config_file: a path to a json file containing inference parameters, defaults to None
+
+        NOTE: if both new_params and config_file are provided, entries in the config_file will overwrite entries in new_params if they have the same key
+        """
+
+        assert new_params or config_file, "must provide new_params or config_file"
+
+        # load from config file if provided
+
+        new_params = new_params or {}
+
+        if config_file:
+            with open(config_file, "r") as f:
+                config_params = json.load(f)
+            config_params = {
+                k: v
+                for k, v in config_params.items()
+                if not k.startswith(config_metadata_id)
+            }  # remove key:value pairs that start with config_metadata_id
+            new_params.update(config_params)
+            logging.info(f"loaded inference parameters from {config_file}")
+            logging.debug(f"inference parameters: {new_params}")
+
         for key, value in new_params.items():
             if key in self.inference_params:
                 self.inference_params[key] = value
@@ -331,13 +362,13 @@ class Summarizer:
         """
         output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
         session_settings = self.get_inference_params()
-        session_settings["huggingface-model-tag"] = "" if hf_tag is None else hf_tag
-        session_settings["date-run"] = get_timestamp()
+        session_settings["META_huggingface_model"] = "" if hf_tag is None else hf_tag
+        session_settings["META_date"] = get_timestamp()
 
-        metadata_path = output_dir / "summarization-parameters.json"
+        metadata_path = output_dir / "summarization_parameters.json"
         logging.info(f"Saving parameters to {metadata_path}")
         with open(metadata_path, "w") as write_file:
-            json.dump(session_settings, write_file)
+            json.dump(session_settings, write_file, indent=4)
 
         logging.debug(f"Saved parameters to {metadata_path}")
         if verbose:
