@@ -42,13 +42,16 @@ class Summarizer:
         """
         self.logger = logging.getLogger(__name__)
 
+        self.model_name_or_path = model_name_or_path
         self.device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
         self.logger.debug(f"loading model {model_name_or_path} to {self.device}")
         self.model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_name_or_path,
+            self.model_name_or_path,
         ).to(self.device)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        self.is_general_attention_model = is_general_attention_model
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
+        self.is_general_attention_model = (
+            is_general_attention_model  # TODO: add a check later
+        )
 
         self.logger.info(f"Loaded model {model_name_or_path} to {self.device}")
 
@@ -414,7 +417,9 @@ class Summarizer:
         metadata_path = output_dir / "summarization_parameters.json"
 
         exported_params = self.get_inference_params().copy()
-        exported_params["META_huggingface_model"] = "" if hf_tag is None else hf_tag
+        exported_params["META_huggingface_model"] = (
+            self.model_name_or_path if hf_tag is None else hf_tag
+        )
         exported_params["META_date"] = get_timestamp()
 
         self.logger.info(f"Saving parameters to {metadata_path}")
