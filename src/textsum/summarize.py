@@ -115,7 +115,7 @@ class Summarizer:
             config_params = {
                 k: v
                 for k, v in config_params.items()
-                if not k.startswith(config_metadata_id)
+                if k in self.settable_inference_params
             }  # remove key:value pairs that start with config_metadata_id
             new_params.update(config_params)
             logging.info(f"loaded inference parameters from {config_file}")
