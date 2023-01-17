@@ -42,6 +42,25 @@ pip install -e .[all]
 
 ## Usage
 
+### Python API
+
+```python
+from textsum.summarize import Summarizer
+
+summarizer = Summarizer() # loads default model and parameters
+
+# summarize a long string
+out_str = summarizer.summarize_string('This is a long string of text that will be summarized.')
+print(out_str)
+```
+
+you can also directly summarize a file:
+
+```python
+out_path = summarizer.summarize_file('/path/to/file.txt')
+print(f'summary saved to {out_path}')
+```
+
 ### CLI
 
 To summarize a directory of text files, run the following command:
@@ -82,11 +101,11 @@ This is currently a minimal demo, but it will be expanded in the future to accep
 
 - [ ] add argparse CLI for UI demo
 - [x] add CLI for summarization of all text files in a directory
-- [ ] python API for summarization of text docs
+- [x] python API for summarization of text docs
 - [ ] optimum inference integration
 - [ ] better documentation, details on improving performance (speed, quality, memory usage, etc.)
 
-and other things I haven't thought of yet
+++ other things I haven't thought of yet
 
 ---
 
