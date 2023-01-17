@@ -411,15 +411,16 @@ class Summarizer:
         :return: None
         """
         output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
-        session_settings = self.get_inference_params()
-        session_settings["META_huggingface_model"] = "" if hf_tag is None else hf_tag
-        session_settings["META_date"] = get_timestamp()
         metadata_path = output_dir / "summarization_parameters.json"
+
+        exported_params = self.get_inference_params().copy()
+        exported_params["META_huggingface_model"] = "" if hf_tag is None else hf_tag
+        exported_params["META_date"] = get_timestamp()
+
         self.logger.info(f"Saving parameters to {metadata_path}")
         with open(metadata_path, "w") as write_file:
-            json.dump(session_settings, write_file, indent=4)
+            json.dump(exported_params, write_file, indent=4)
 
         logging.debug(f"Saved parameters to {metadata_path}")
         if verbose:
-            # log the parameters
-            self.logger.info(f"parameters: {session_settings}")
+            self.logger.info(f"parameters: {exported_params}")
