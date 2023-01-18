@@ -415,7 +415,7 @@ class Summarizer:
 
         :param dict params: parameters to save
         :param str or Path output_dir: directory to save the parameters to
-        :param str hf_tag: the model tag on huggingface
+        :param str hf_tag: the model tag on huggingface (will be used instead of self.model_name_or_path)
         :param bool verbose: whether to log the parameters
 
         :return: None
