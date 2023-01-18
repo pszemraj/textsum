@@ -124,7 +124,6 @@ def proc_submission(
     processed_outputs = summarizer.summarize_via_tokenbatches(
         input_text=tr_in,
         batch_length=token_batch_length,
-        **settings,
     )  # get the summaries
 
     # reformat output
@@ -217,7 +216,9 @@ def main():
 
         gr.Markdown("# Document Summarization with Long-Document Transformers")
         gr.Markdown(
-            f"This is an example use case for fine-tuned long document transformers. The model is trained on book summaries (via the BookSum dataset). Model: {summarizer.model_name}"
+            f"""
+            This is an example use case for fine-tuned long document transformers. The model is trained on book summaries (via the BookSum dataset).
+            Model: {summarizer.model_name_or_path}"""
         )
         with gr.Column():
 

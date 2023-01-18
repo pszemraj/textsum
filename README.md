@@ -27,7 +27,7 @@ Install the package using pip:
 pip install git+https://github.com/pszemraj/textsum.git
 ```
 
-The textsum package is now installed in your virtual environment. You can now use the CLI or UI demo (see [Usage](#usage)).
+The `textsum` package is now installed in your virtual environment. You can now use the CLI or python API to summarize text docs see the [Usage](#usage) section for more details.
 
 ### Full Installation _(PDF OCR, gradio UI demo)_
 
@@ -93,15 +93,15 @@ For convenience, a UI demo is provided using [gradio](https://gradio.app/). To r
 textsum-ui
 ```
 
-This is currently a minimal demo, but it will be expanded in the future to accept other arguments and options.
+This is currently a minimal demo, but will be expanded in the future to accept other arguments and options.
 
 ---
 
 ## Roadmap
 
-- [ ] add argparse CLI for UI demo
 - [x] add CLI for summarization of all text files in a directory
 - [x] python API for summarization of text docs
+- [ ] add argparse CLI for UI demo
 - [ ] optimum inference integration, LLM.int8 inference
 - [ ] better documentation, details on improving performance (speed, quality, memory usage, etc.)
 
