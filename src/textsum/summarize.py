@@ -296,13 +296,18 @@ class Summarizer:
         if return_string:
             return full_summary
 
-        target_file = Path(target_file).resolve()
+        target_file = Path(target_file)
+        if not target_file.parent.exists():
+            logging.info(f"Creating directory {target_file.parent}")
+            target_file.parent.mkdir(parents=True)
         if target_file.exists():
             warnings.warn(f"File {target_file} exists, overwriting")
 
         with open(
             target_file,
             "w",
+            encoding="utf-8",
+            errors="ignore",
         ) as fo:
 
             fo.writelines(full_summary)
@@ -311,6 +316,8 @@ class Summarizer:
             with open(
                 target_file,
                 "a",
+                encoding="utf-8",
+                errors="ignore",
             ) as fo:
 
                 fo.write("\n" * 3)

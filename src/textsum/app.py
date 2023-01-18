@@ -150,7 +150,7 @@ def proc_submission(
     summary_file = _here / f"summarized_{get_timestamp()}.txt"
     summarizer.save_summary(
         summary_data=processed_outputs,
-        target_file=str(summary_file.resolve),
+        target_file=summary_file,
     )
 
     return html, sum_text_out, scores_out, summary_file
@@ -215,11 +215,13 @@ def main():
     demo = gr.Blocks()
     with demo:
 
-        gr.Markdown("# Document Summarization with Long-Document Transformers")
+        gr.Markdown("# Summarization UI with `textsum`")
         gr.Markdown(
             f"""
-            This is an example use case for fine-tuned long document transformers. The model is trained on book summaries (via the BookSum dataset).
-            Model: {summarizer.model_name_or_path}"""
+            This is an example use case for fine-tuned long document transformers.
+            - Model: `{summarizer.model_name_or_path}`
+            - this demo created with the [textsum](https://github.com/pszemraj/textsum) library + gradio.
+            """
         )
         with gr.Column():
 
