@@ -15,15 +15,6 @@ logging.basicConfig(
     datefmt="%m/%d/%Y %I:%M:%S",
 )
 
-# ------------------------- #
-
-TEXT_EXAMPLE_URLS = {
-    "whisper_lecture": "https://pastebin.com/raw/X9PEgS2w",
-    "hf_blog_clip": "https://pastebin.com/raw/1RMg1Naz",
-}
-
-# ------------------------- #
-
 
 def get_timestamp() -> str:
     """
@@ -129,95 +120,6 @@ def truncate_word_count(text, max_words=512):
         processed["was_truncated"] = False
         processed["truncated_text"] = text
     return processed
-
-
-def load_text_examples(
-    urls: dict = TEXT_EXAMPLE_URLS, target_dir: str or Path = None
-) -> Path:
-    """
-    load_text_examples - load the text examples from the web to a directory
-
-    :param dict urls: the urls to the text examples, defaults to TEXT_EXAMPLE_URLS
-    :param str or Path target_dir: the path to the target directory, defaults to the current working directory
-    :return Path: the path to the directory containing the text examples
-    """
-    target_dir = Path.cwd() if target_dir is None else Path(target_dir)
-    target_dir.mkdir(exist_ok=True)
-
-    for name, url in urls.items():  # download the examples
-        subprocess.run(["wget", url, "-O", target_dir / f"{name}.txt"])
-
-    return target_dir
-
-
-TEXT_EX_EXTENSIONS = [".txt", ".md"]
-
-
-def load_example_filenames(
-    example_path: str or Path, ext: list = TEXT_EX_EXTENSIONS
-) -> dict:
-    """
-    load_example_filenames - load the example filenames from a directory
-
-    :param strorPath example_path: the path to the examples directory
-    :param list ext: the file extensions to load (default: [".txt", ".md"])
-    :return dict: the example filenames
-    """
-    example_path = Path(example_path)
-    if not example_path.exists():
-        # download the examples
-        logging.info("Downloading the examples...")
-        example_path = load_text_examples(target_dir=example_path)
-
-    # load the examples into a list
-    examples = {f.name: f.resolve() for f in example_path.glob("*") if f.suffix in ext}
-    logging.info(f"Loaded {len(examples)} examples from {example_path}")
-    return examples
-
-
-def save_summary(
-    summarize_output, outpath: str or Path = None, write_scores=True
-) -> Path:
-    """
-
-    save_summary - save the summary generated from summarize_via_tokenbatches() to a text file
-
-    :param list summarize_output: the output from summarize_via_tokenbatches()
-    :param strorPath outpath: the path to the output file, defaults to the current working directory
-    :param bool write_scores: whether to write the scores to the output file, defaults to True
-    :return Path: the path to the output file
-
-    Example in use:
-            _summaries = summarize_via_tokenbatches(
-              text,
-              batch_length=token_batch_length,
-              batch_stride=batch_stride,
-              **settings,
-          )
-            save_summary(_summaries, outpath=outpath, write_scores=True)
-    """
-
-    outpath = (
-        Path.cwd() / f"document_summary_{get_timestamp()}.txt"
-        if outpath is None
-        else Path(outpath)
-    )
-    sum_text = [s["summary"][0] for s in summarize_output]
-    sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summarize_output]
-    scores_text = "\n".join(sum_scores)
-    full_summary = "\n\t".join(sum_text)
-
-    with open(outpath, "w", encoding="utf-8", errors="ignore") as fo:
-        fo.writelines(full_summary)
-    if write_scores:
-        with open(outpath, "a", encoding="utf-8", errors="ignore") as fo:
-
-            fo.write("\n" * 3)
-            fo.write(f"\n\nSection Scores:\n")
-            fo.writelines(scores_text)
-            fo.write("\n\n---\n")
-
-    return outpath
 
 
 def setup_logging(loglevel, logfile=None) -> None:

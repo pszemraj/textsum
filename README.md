@@ -14,24 +14,24 @@
 
 > utility for using transformers summarization models on text docs
 
-An extension/generalization of the [document summarization](<https://huggingface.co/spaces/pszemraj/document-summarization>) space on huggingface. The purpose of this package is to provide a simple interface for using summarization models on text documents of arbitrary length.
+The purpose of this package is to provide a simple interface (python API, CLI, gradio web UI) for using summarization models on text documents of arbitrary length.
 
 ⚠️ **WARNING**: _This package is a WIP and is not ready for production use. Some things may not work yet._ ⚠️
 
 ## Installation
 
-Install the package using pip:
+Install using pip:
 
 ```bash
 # create a virtual environment (optional)
 pip install git+https://github.com/pszemraj/textsum.git
 ```
 
-The textsum package is now installed in your virtual environment. You can now use the CLI or UI demo (see [Usage](#usage)).
+The `textsum` package is now installed in your virtual environment. You can now use the CLI or python API to summarize text docs see the [Usage](#usage) section for more details.
 
-### Full Installation _(PDF OCR, gradio UI demo)_
+### Full Installation
 
-To install all the dependencies _(includes PDF OCR, gradio UI demo)_, run:
+To install all the dependencies _(includes PDF OCR, gradio UI demo, optimum, etc)_, run:
 
 ```bash
 git clone https://github.com/pszemraj/textsum.git
@@ -41,6 +41,31 @@ pip install -e .[all]
 ```
 
 ## Usage
+
+There are three ways to use this package:
+
+1. [python API](#python-api)
+2. [CLI](#cli)
+3. [Demo App](#demo-app)
+
+### Python API
+
+```python
+from textsum.summarize import Summarizer
+
+summarizer = Summarizer() # loads default model and parameters
+
+# summarize a long string
+out_str = summarizer.summarize_string('This is a long string of text that will be summarized.')
+print(f'summary: {out_str}')
+```
+
+you can also directly summarize a file:
+
+```python
+out_path = summarizer.summarize_file('/path/to/file.txt')
+print(f'summary saved to {out_path}')
+```
 
 ### CLI
 
@@ -66,27 +91,36 @@ For more information, run:
 textsum-dir --help
 ```
 
-### UI Demo
+### Demo App
 
-For convenience, a UI demo is provided using [gradio](https://gradio.app/). To run the demo, run the following command:
+For convenience, a UI demo[^1] is provided using [gradio](https://gradio.app/). To ensure you have the dependencies installed, clone the repo and run the following command:
+
+```bash
+pip install -e .[app]
+```
+
+To run the demo, run the following command:
 
 ```bash
 textsum-ui
 ```
 
-This is currently a minimal demo, but it will be expanded in the future to accept other arguments and options.
+This will start a local server that you can access in your browser & a shareable link will be printed to the console.
+
+[^1]: The demo is currently minimal, but will be expanded in the future to accept other arguments and options.
 
 ---
 
 ## Roadmap
 
-- [ ] add argparse CLI for UI demo
 - [x] add CLI for summarization of all text files in a directory
-- [ ] python API for summarization of text docs
-- [ ] optimum inference integration
-- [ ] better documentation, details on improving performance (speed, quality, memory usage, etc.)
+- [x] python API for summarization of text docs
+- [ ] add argparse CLI for UI demo
+- [ ] put on pypi
+- [ ] optimum inference integration, LLM.int8 inference
+- [ ] better documentation [in the wiki](https://github.com/pszemraj/textsum/wiki), details on improving performance (speed, quality, memory usage, etc.)
 
-and other things I haven't thought of yet
+_Other ideas? Open an issue or PR!_
 
 ---
 

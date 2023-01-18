@@ -4,7 +4,7 @@ textsum - a package for summarizing text
 """
 import sys
 
-from . import cli, utils
+from . import summarize, utils
 
 if sys.version_info[:2] >= (3, 8):
     # TODO: Import directly (no need for conditional) when `python_requires = >= 3.8`

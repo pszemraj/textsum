@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 pdf2text.py - convert pdf files to text files (OCR). helper functions for textsum
+
+
+    #TODO: rewrite this to a class with methods
 """
 
 import logging
