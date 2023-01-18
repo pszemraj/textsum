@@ -10,8 +10,8 @@ import time
 from pathlib import Path
 
 os.environ["USE_TORCH"] = "1"
-os.environ["DEMO_MAX_INPUT_WORDS"] = 2048  # number of words to truncate input to
-os.environ["DEMO_MAX_INPUT_PAGES"] = 20  # number of pages to truncate PDFs to
+os.environ["DEMO_MAX_INPUT_WORDS"] = "2048"  # number of words to truncate input to
+os.environ["DEMO_MAX_INPUT_PAGES"] = "20"  # number of pages to truncate PDFs to
 os.environ["TOKENIZERS_PARALLELISM"] = "false"  # parallelism is buggy with gradio
 
 logging.basicConfig(
@@ -166,6 +166,12 @@ def load_uploaded_file(file_obj, max_pages=20) -> str:
     """
 
     global ocr_model
+    max_pages = (
+        int(os.environ["DEMO_MAX_INPUT_PAGES"])
+        if int(os.environ["DEMO_MAX_INPUT_PAGES"]) > 0
+        else max_pages
+    )
+    logging.info(f"Loading file, truncating to {max_pages} pages for PDFs")
     if isinstance(file_obj, list):
         file_obj = file_obj[0]
     file_path = Path(file_obj.name)
