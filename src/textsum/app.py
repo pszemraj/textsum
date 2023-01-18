@@ -27,7 +27,7 @@ from textsum.pdf2text import convert_PDF_to_Text
 from textsum.summarize import Summarizer
 from textsum.utils import truncate_word_count, get_timestamp
 
-_here = Path(__file__).parent
+_here = Path.cwd()
 
 nltk.download("stopwords")  # TODO=find where this requirement originates from
 
@@ -147,12 +147,13 @@ def proc_submission(
 
     html += ""
 
-    saved_file = summarizer.save_summary(
+    summary_file = _here / f"summarized_{get_timestamp()}.txt"
+    summarizer.save_summary(
         summary_data=processed_outputs,
-        target_file=_here / f"summarized_{get_timestamp()}.txt",
+        target_file=str(summary_file.resolve),
     )
 
-    return html, sum_text_out, scores_out, saved_file
+    return html, sum_text_out, scores_out, summary_file
 
 
 def load_uploaded_file(file_obj, max_pages=20) -> str:
@@ -198,7 +199,7 @@ def load_uploaded_file(file_obj, max_pages=20) -> str:
 
 
 def main():
-    logging.info("Starting app instance")
+    logging.info(f"Starting app instance. Files will be saved to {str(_here)}")
 
     summarizer = Summarizer()
 
