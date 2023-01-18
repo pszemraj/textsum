@@ -10,6 +10,10 @@ import time
 from pathlib import Path
 
 os.environ["USE_TORCH"] = "1"
+os.environ["DEMO_MAX_INPUT_WORDS"] = 2048  # number of words to truncate input to
+os.environ["DEMO_MAX_INPUT_PAGES"] = 20  # number of pages to truncate PDFs to
+os.environ["TOKENIZERS_PARALLELISM"] = "false"  # parallelism is buggy with gradio
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -17,12 +21,11 @@ logging.basicConfig(
 import gradio as gr
 import nltk
 from cleantext import clean
-from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
 
 from textsum.pdf2text import convert_PDF_to_Text
-from textsum.summarize import load_model_and_tokenizer, summarize_via_tokenbatches
-from textsum.utils import save_summary, truncate_word_count
+from textsum.summarize import Summarizer
+from textsum.utils import truncate_word_count, get_timestamp
 
 _here = Path(__file__).parent
 
@@ -31,20 +34,18 @@ nltk.download("stopwords")  # TODO=find where this requirement originates from
 
 def proc_submission(
     input_text: str,
-    model_size: str,
-    num_beams,
-    token_batch_length,
-    length_penalty,
-    repetition_penalty,
-    no_repeat_ngram_size,
-    max_input_length: int = 1024,
+    num_beams: int,
+    token_batch_length: int,
+    length_penalty: float,
+    repetition_penalty: float,
+    no_repeat_ngram_size: int,
+    max_input_words: int = 1024,
 ):
     """
     proc_submission - a helper function for the gradio module to process submissions
 
     Args:
         input_text (str): the input text to summarize
-        model_size (str): the size of the model to use
         num_beams (int): the number of beams to use
         token_batch_length (int): the length of the token batches to use
         length_penalty (float): the length penalty to use
@@ -55,17 +56,13 @@ def proc_submission(
     Returns:
         str in HTML format, string of the summary, str of score
     """
-    global model, tokenizer, model_sm, tokenizer_sm
-    # assert that the model is loaded and accessible
-    if "model" not in globals():
-        model, tokenizer = load_model_and_tokenizer(
-            "pszemraj/pegasus-x-large-book-summary"
-        )
 
-    if "model_sm" not in globals():
-        model_sm, tokenizer_sm = load_model_and_tokenizer(
-            "pszemraj/long-t5-tglobal-base-16384-book-summary"
-        )
+    global summarizer
+    max_input_words = (
+        int(os.environ["DEMO_MAX_INPUT_WORDS"])
+        if int(os.environ["DEMO_MAX_INPUT_WORDS"]) > 0
+        else max_input_words
+    )
     settings = {
         "length_penalty": float(length_penalty),
         "repetition_penalty": float(repetition_penalty),
@@ -77,22 +74,33 @@ def proc_submission(
         "early_stopping": True,
         "do_sample": False,
     }
+
+    if "summarizer" not in globals():
+        logging.info("model not loaded, reloading now")
+        summarizer = Summarizer(
+            use_cuda=True,
+            token_batch_length=token_batch_length,
+            **settings,
+        )
+
     st = time.perf_counter()
     history = {}
     clean_text = clean(input_text, lower=False)
-    max_input_length = 2048 if "base" in model_size.lower() else max_input_length
-    processed = truncate_word_count(clean_text, max_input_length)
+    processed = truncate_word_count(
+        clean_text,
+        max_words=max_input_words,
+    )
 
     if processed["was_truncated"]:
         tr_in = processed["truncated_text"]
-        # create elaborate HTML warning
         input_wc = re.split(r"\s+", input_text)
+
         msg = f"""
         <div style="background-color: #FFA500; color: white; padding: 20px;">
         <h3>Warning</h3>
-        <p>Input text was truncated to {max_input_length} words. That's about {100*max_input_length/len(input_wc):.2f}% of the submission.</p>
+        <p>Input text was truncated to {max_input_words} words. That's about {100*max_input_words/len(input_wc):.2f}% of the submission.</p>
         </div>
-        """
+        """  # create elaborate HTML warning message
         logging.warning(msg)
         history["WARNING"] = msg
     else:
@@ -100,38 +108,39 @@ def proc_submission(
         msg = None
 
     if len(input_text) < 50:
-        # this is essentially a different case from the above
         msg = f"""
         <div style="background-color: #880808; color: white; padding: 20px;">
         <h3>Warning</h3>
         <p>Input text is too short to summarize. Detected {len(input_text)} characters.
         Please load text by selecting an example from the dropdown menu or by pasting text into the text box.</p>
         </div>
-        """
+        """  # no-input warning
         logging.warning(msg)
         logging.warning("RETURNING EMPTY STRING")
         history["WARNING"] = msg
 
         return msg, "", []
 
-    _summaries = summarize_via_tokenbatches(
-        tr_in,
-        model_sm if model_size == "LongT5-base" else model,
-        tokenizer_sm if model_size == "LongT5-base" else tokenizer,
+    processed_outputs = summarizer.summarize_via_tokenbatches(
+        input_text=tr_in,
         batch_length=token_batch_length,
         **settings,
-    )
-    sum_text = [f"Section {i}: " + s["summary"][0] for i, s in enumerate(_summaries)]
+    )  # get the summaries
+
+    # reformat output
+    history["Summary Scores"] = "<br><br>"
+    sum_text = [
+        f"\tSection {i}: " + s["summary"][0] for i, s in enumerate(processed_outputs)
+    ]
     sum_scores = [
-        f" - Section {i}: {round(s['summary_score'],4)}"
-        for i, s in enumerate(_summaries)
+        f"\tSection {i}: {round(s['summary_score'],4)}"
+        for i, s in enumerate(processed_outputs)
     ]
 
     sum_text_out = "\n".join(sum_text)
-    history["Summary Scores"] = "<br><br>"
     scores_out = "\n".join(sum_scores)
     rt = round((time.perf_counter() - st) / 60, 2)
-    print(f"Runtime: {rt} minutes")
+    logging.info(f"Runtime: {rt} minutes")
     html = ""
     html += f"<p>Runtime: {rt} minutes on CPU</p>"
     if msg is not None:
@@ -139,26 +148,23 @@ def proc_submission(
 
     html += ""
 
-    # save to file
-    saved_file = save_summary(_summaries)
+    saved_file = summarizer.save_summary(
+        summary_data=processed_outputs,
+        target_file=_here / f"summarized_{get_timestamp()}.txt",
+    )
 
     return html, sum_text_out, scores_out, saved_file
 
 
-def load_uploaded_file(file_obj, max_pages=20):
+def load_uploaded_file(file_obj, max_pages=20) -> str:
     """
-    load_uploaded_file - process an uploaded file
+    load_uploaded_file - loads a file added by the user
 
-    Args:
-        file_obj (POTENTIALLY list): Gradio file object inside a list
-
-    Returns:
-        str, the uploaded file contents
+    :param file_obj: a file object from gr.File()
+    :param int max_pages: the maximum number of pages to convert from a PDF
+    :return str: the text from the file
     """
 
-    # file_path = Path(file_obj[0].name)
-
-    # check if mysterious file object is a list
     global ocr_model
     if isinstance(file_obj, list):
         file_obj = file_obj[0]
@@ -188,18 +194,8 @@ def load_uploaded_file(file_obj, max_pages=20):
 
 def main():
     logging.info("Starting app instance")
-    os.environ[
-        "TOKENIZERS_PARALLELISM"
-    ] = "false"  # parallelism on tokenizers is buggy with gradio
-    logging.info("Loading summ models")
-    with contextlib.redirect_stdout(None):
-        model, tokenizer = load_model_and_tokenizer(
-            "pszemraj/pegasus-x-large-book-summary"
-        )
-        model_sm, tokenizer_sm = load_model_and_tokenizer(
-            "pszemraj/long-t5-tglobal-base-16384-book-summary"
-        )
-    # ensure that the models are global variables
+
+    summarizer = Summarizer()
 
     logging.info("Loading OCR model")
     with contextlib.redirect_stdout(None):
@@ -208,13 +204,14 @@ def main():
             "crnn_mobilenet_v3_large",
             pretrained=True,
             assume_straight_pages=True,
-        )
+        )  # mostly to pre-download the model
+
     demo = gr.Blocks()
     with demo:
 
         gr.Markdown("# Document Summarization with Long-Document Transformers")
         gr.Markdown(
-            "This is an example use case for fine-tuned long document transformers. The model is trained on book summaries (via the BookSum dataset). The models in this demo are [LongT5-base](https://huggingface.co/pszemraj/long-t5-tglobal-base-16384-book-summary) and [Pegasus-X-Large](https://huggingface.co/pszemraj/pegasus-x-large-book-summary)."
+            f"This is an example use case for fine-tuned long document transformers. The model is trained on book summaries (via the BookSum dataset). Model: {summarizer.model_name}"
         )
         with gr.Column():
 
@@ -225,11 +222,6 @@ def main():
             with gr.Row(variant="compact"):
                 with gr.Column(scale=0.5, variant="compact"):
 
-                    model_size = gr.Radio(
-                        choices=["LongT5-base", "Pegasus-X-large"],
-                        label="Model Variant",
-                        value="LongT5-base",
-                    )
                     num_beams = gr.Radio(
                         choices=[2, 3, 4],
                         label="Beam Search: # of Beams",
@@ -314,7 +306,7 @@ def main():
         with gr.Column():
             gr.Markdown("### About the Model")
             gr.Markdown(
-                "These models are fine-tuned on the [BookSum dataset](https://arxiv.org/abs/2105.08209).The goal was to create a model that can generalize well and is useful in summarizing lots of text in academic and daily usage."
+                "Model(s) are fine-tuned on the [BookSum dataset](https://arxiv.org/abs/2105.08209).The goal was to create a model that can generalize well and is useful in summarizing lots of text in academic and daily usage."
             )
             gr.Markdown("---")
 
@@ -326,7 +318,6 @@ def main():
             fn=proc_submission,
             inputs=[
                 input_text,
-                model_size,
                 num_beams,
                 token_batch_length,
                 length_penalty,
@@ -336,10 +327,13 @@ def main():
             outputs=[output_text, summary_text, summary_scores, text_file],
         )
 
-    demo.launch(enable_queue=True)
+    demo.launch(enable_queue=True, share=True)
 
 
 def run():
+    """
+    run - main entry point for the app
+    """
     main()
 
 
