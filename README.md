@@ -24,7 +24,7 @@ Install using pip:
 
 ```bash
 # create a virtual environment (optional)
-pip install git+https://github.com/pszemraj/textsum.git
+pip install textsum
 ```
 
 The `textsum` package is now installed in your virtual environment. You can now use the CLI or python API to summarize text docs see the [Usage](#usage) section for more details.
@@ -40,6 +40,16 @@ cd textsum
 pip install -e .[all]
 ```
 
+### Additional Details
+
+This package uses the [clean-text](https://github.com/jfilter/clean-text) python package, and like the "base" version of the package **does not** include the GPL-licensed `unidecode` dependency. If you want to use the `unidecode` package, install the package as an extra with `pip`:
+
+```bash
+pip install textsum[unidecode]
+```
+
+In practice, text cleaning pre-summarization with/without `unidecode` should not make a significant difference.
+
 ## Usage
 
 There are three ways to use this package:
@@ -49,6 +59,10 @@ There are three ways to use this package:
 3. [Demo App](#demo-app)
 
 ### Python API
+
+To use the python API, import the `Summarizer` class and instantiate it. This will load the default model and parameters.
+
+You can then use the `summarize_string` method to summarize a long string of text.
 
 ```python
 from textsum.summarize import Summarizer
@@ -96,7 +110,7 @@ textsum-dir --help
 For convenience, a UI demo[^1] is provided using [gradio](https://gradio.app/). To ensure you have the dependencies installed, clone the repo and run the following command:
 
 ```bash
-pip install -e .[app]
+pip install textsum[app]
 ```
 
 To run the demo, run the following command:
@@ -116,7 +130,7 @@ This will start a local server that you can access in your browser & a shareable
 - [x] add CLI for summarization of all text files in a directory
 - [x] python API for summarization of text docs
 - [ ] add argparse CLI for UI demo
-- [ ] put on pypi
+- [x] put on pypi
 - [ ] optimum inference integration, LLM.int8 inference
 - [ ] better documentation [in the wiki](https://github.com/pszemraj/textsum/wiki), details on improving performance (speed, quality, memory usage, etc.)
 
