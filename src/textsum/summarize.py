@@ -138,6 +138,10 @@ class Summarizer:
         """get the inference parameters currently being used"""
         return self.inference_params
 
+    def update_loglevel(self, loglevel: int = logging.INFO):
+        """update the loglevel of the logger"""
+        self.logger.setLevel(loglevel)
+
     def summarize_and_score(self, ids, mask, **kwargs):
         """
         summarize_and_score - summarize a batch of text and return the summary and output scores
