@@ -15,6 +15,9 @@
  <a href="https://colab.research.google.com/gist/pszemraj/ff8a8486dc3303199fe9c9790a606fff/textsum-summarize-text-files-example.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
+<a href="https://pypi.org/project/textsum/"> <img src="https://img.shields.io/pypi/v/textsum.svg" alt="PyPI-Server"/></a>
+
+<br><br>
 
 > utility for using transformers summarization models on text docs
 
@@ -160,6 +163,7 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to contribute
 - [x] put on pypi
 - [ ] optimum inference integration, LLM.int8 inference
 - [ ] better documentation [in the wiki](https://github.com/pszemraj/textsum/wiki), details on improving performance (speed, quality, memory usage, etc.)
+- [ ] improvements to OCR helper module
 
 _Other ideas? Open an issue or PR!_
 
