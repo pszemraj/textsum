@@ -17,7 +17,7 @@
 </a>
 <a href="https://pypi.org/project/textsum/"> <img src="https://img.shields.io/pypi/v/textsum.svg" alt="PyPI-Server"/></a>
 
-<br><br>
+<br>
 
 > utility for using transformers summarization models on text docs
 
