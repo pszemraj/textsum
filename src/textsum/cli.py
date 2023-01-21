@@ -233,7 +233,7 @@ def main(args):
         )
 
     logging.info(f"finished summarization loop - output dir: {output_dir.resolve()}")
-    summarizer.save_params(output_dir=output_dir, hf_tag=args.model_name)
+    summarizer.save_params(output_path=output_dir, hf_tag=args.model_name)
     logging.info("finished summarizing files")
 
 

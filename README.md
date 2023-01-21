@@ -12,11 +12,35 @@
 
 # textsum
 
+ <a href="https://colab.research.google.com/gist/pszemraj/ff8a8486dc3303199fe9c9790a606fff/textsum-summarize-text-files-example.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+<a href="https://pypi.org/project/textsum/"> <img src="https://img.shields.io/pypi/v/textsum.svg" alt="PyPI-Server"/></a>
+
+<br>
+
 > utility for using transformers summarization models on text docs
 
-The purpose of this package is to provide a simple interface (python API, CLI, gradio web UI) for using summarization models on text documents of arbitrary length.
+This package is to provides easy-to-use interfaces for using summarization models on text documents of arbitrary length. Currently implemented interfaces include a python API, CLI, and a shareable demo app.
 
-⚠️ **WARNING**: _This package is a WIP and is not ready for production use. Some things may not work yet._ ⚠️
+For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/textsum/wiki)
+
+⚠️ _This is a WIP, but general functionality is available_ ⚠️
+
+---
+
+- [textsum](#textsum)
+  - [Installation](#installation)
+    - [Full Installation](#full-installation)
+    - [Additional Details](#additional-details)
+  - [Usage](#usage)
+    - [Python API](#python-api)
+    - [CLI](#cli)
+    - [Demo App](#demo-app)
+  - [Contributing](#contributing)
+  - [Roadmap](#roadmap)
+
+---
 
 ## Installation
 
@@ -27,7 +51,7 @@ Install using pip:
 pip install textsum
 ```
 
-The `textsum` package is now installed in your virtual environment. You can now use the CLI or python API to summarize text docs see the [Usage](#usage) section for more details.
+The `textsum` package is now installed in your virtual environment. CLI commands/python API can be summarize text docs from anywhere. see the [Usage](#usage) section for more details.
 
 ### Full Installation
 
@@ -125,6 +149,12 @@ This will start a local server that you can access in your browser & a shareable
 
 ---
 
+## Contributing
+
+Contributions are welcome! Please open an issue or PR if you have any ideas or suggestions.
+
+See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to contribute.
+
 ## Roadmap
 
 - [x] add CLI for summarization of all text files in a directory
@@ -133,6 +163,7 @@ This will start a local server that you can access in your browser & a shareable
 - [x] put on pypi
 - [ ] optimum inference integration, LLM.int8 inference
 - [ ] better documentation [in the wiki](https://github.com/pszemraj/textsum/wiki), details on improving performance (speed, quality, memory usage, etc.)
+- [ ] improvements to OCR helper module
 
 _Other ideas? Open an issue or PR!_
 

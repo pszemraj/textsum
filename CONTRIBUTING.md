@@ -1,29 +1,3 @@
-```{todo} THIS IS SUPPOSED TO BE AN EXAMPLE. MODIFY IT ACCORDING TO YOUR NEEDS!
-
-   The document assumes you are using a source repository service that promotes a
-   contribution model similar to [GitHub's fork and pull request workflow].
-   While this is true for the majority of services (like GitHub, GitLab,
-   BitBucket), it might not be the case for private repositories (e.g., when
-   using Gerrit).
-
-   Also notice that the code examples might refer to GitHub URLs or the text
-   might use GitHub specific terminology (e.g., *Pull Request* instead of *Merge
-   Request*).
-
-   Please make sure to check the document having these assumptions in mind
-   and update things accordingly.
-```
-
-```{todo} Provide the correct links/replacements at the bottom of the document.
-```
-
-```{todo} You might want to have a look on [PyScaffold's contributor's guide],
-
-   especially if your project is open source. The text should be very similar to
-   this template, but there are a few extra contents that you might decide to
-   also include, like mentioning labels of your issue tracker or automated
-   releases.
-```
 
 # Contributing
 
@@ -40,6 +14,25 @@ Please notice, all users and contributors are expected to be **open,
 considerate, reasonable, and respectful**. When in doubt,
 [Python Software Foundation's Code of Conduct] is a good reference in terms of
 behavior guidelines.
+
+---
+
+- [Contributing](#contributing)
+  - [Issue Reports](#issue-reports)
+  - [Documentation Improvements](#documentation-improvements)
+    - [creating pyscaffold-compatible documentation](#creating-pyscaffold-compatible-documentation)
+    - [Working on the documentation](#working-on-the-documentation)
+  - [Code Contributions](#code-contributions)
+    - [Submit an issue](#submit-an-issue)
+    - [Create an environment](#create-an-environment)
+    - [Clone the repository](#clone-the-repository)
+    - [Implement your changes](#implement-your-changes)
+    - [Submit your contribution](#submit-your-contribution)
+    - [Troubleshooting](#troubleshooting)
+  - [Maintainer tasks](#maintainer-tasks)
+    - [Releases](#releases)
+
+---
 
 ## Issue Reports
 
@@ -62,47 +55,43 @@ you help us to identify the root cause of the issue.
 ## Documentation Improvements
 
 You can help improve `textsum` docs by making them more readable and coherent, or
-by adding missing information and correcting mistakes.
+by adding missing information and correcting mistakes. Currently, this is easy as there is no official documentation. The README.md file is the only documentation, outside of the [wiki]. If you want to improve it, please do so and submit a pull request.
 
-`textsum` documentation uses [Sphinx] as its main documentation compiler.
-This means that the docs are kept in the same repository as the project code, and
-that any documentation update is done in the same way was a code contribution.
+### creating pyscaffold-compatible documentation
 
-```{todo} Don't forget to mention which markup language you are using.
+First, install [pyscaffoldext-markdown] and [pyscaffoldext-sphinx] extensions (as well as all other extensions):
 
-    e.g.,  [reStructuredText] or [CommonMark] with [MyST] extensions.
+```bash
+pip install pyscaffold[all]
 ```
 
-```{todo} If your project is hosted on GitHub, you can also mention the following tip:
+Then, clone this repo and update the documentation:
 
-   :::{tip}
-      Please notice that the [GitHub web interface] provides a quick way of
-      propose changes in `textsum`'s files. While this mechanism can
-      be tricky for normal code contributions, it works perfectly fine for
-      contributing to the docs, and can be quite handy.
-
-      If you are interested in trying this method out, please navigate to
-      the `docs` folder in the source [repository], find which file you
-      would like to propose changes and click in the little pencil icon at the
-      top, to open [GitHub's code editor]. Once you finish editing the file,
-      please write a message in the form at the bottom of the page describing
-      which changes have you made and what are the motivations behind them and
-      submit your proposal.
-   :::
+```bash
+git clone https://github.com/pszemraj/textsum.git
+putup textsum --force --markdown
 ```
+
+This will create a new directory `docs` with the documentation. You can now edit the files in `docs` and commit the changes.
+
+### Working on the documentation
 
 When working on documentation changes in your local machine, you can
 compile them using [tox] :
 
 ```
+
 tox -e docs
+
 ```
 
 and use Python's built-in web server for a preview in your web browser
 (`http://localhost:8000`):
 
 ```
+
 python3 -m http.server --directory 'docs/_build/html'
+
 ```
 
 ## Code Contributions
@@ -335,37 +324,26 @@ on [PyPI], the following steps can be used to release a new version for
     to collectively create software are general and can be applied to all sorts
     of environments, including private companies and proprietary code bases.
 
-
 [black]: https://pypi.org/project/black/
-[commonmark]: https://commonmark.org/
 [contribution-guide.org]: http://www.contribution-guide.org/
-[creating a pr]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
 [descriptive commit message]: https://chris.beams.io/posts/git-commit
 [docstrings]: https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
-[first-contributions tutorial]: https://github.com/firstcontributions/first-contributions
 [flake8]: https://flake8.pycqa.org/en/stable/
 [git]: https://git-scm.com
-[github web interface]: https://docs.github.com/en/github/managing-files-in-a-repository/managing-files-on-github/editing-files-in-your-repository
-[github's code editor]: https://docs.github.com/en/github/managing-files-in-a-repository/managing-files-on-github/editing-files-in-your-repository
-[github's fork and pull request workflow]: https://guides.github.com/activities/forking/
 [guide created by freecodecamp]: https://github.com/freecodecamp/how-to-contribute-to-open-source
 [miniconda]: https://docs.conda.io/en/latest/miniconda.html
-[myst]: https://myst-parser.readthedocs.io/en/latest/syntax/syntax.html
 [other kinds of contributions]: https://opensource.guide/how-to-contribute
 [pre-commit]: https://pre-commit.com/
 [pypi]: https://pypi.org/
-[pyscaffold's contributor's guide]: https://pyscaffold.org/en/stable/contributing.html
 [pytest can drop you]: https://docs.pytest.org/en/stable/usage.html#dropping-to-pdb-python-debugger-at-the-start-of-a-test
 [python software foundation's code of conduct]: https://www.python.org/psf/conduct/
-[restructuredtext]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/
-[sphinx]: https://www.sphinx-doc.org/en/master/
 [tox]: https://tox.readthedocs.io/en/stable/
 [virtual environment]: https://realpython.com/python-virtual-environments-a-primer/
 [virtualenv]: https://virtualenv.pypa.io/en/stable/
 
-
 ```{todo} Please review and change the following definitions:
 ```
 
-[repository]: https://github.com/<USERNAME>/textsum
-[issue tracker]: https://github.com/<USERNAME>/textsum/issues
+[repository]: https://github.com/pszemraj/textsum
+[issue tracker]: https://github.com/pszemraj/textsum/issues
+[wiki]: https://github.com/pszemraj/textsum/wiki
