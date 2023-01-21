@@ -161,6 +161,9 @@ class Summarizer:
         # put global attention on <s> token
         global_attention_mask[:, 0] = 1
 
+        self.logger.debug(
+            f"generating summary for batch of size {input_ids.shape} with {kwargs}"
+        )
         if self.is_general_attention_model:
             summary_pred_ids = self.model.generate(
                 input_ids,
@@ -184,6 +187,7 @@ class Summarizer:
             skip_special_tokens=True,
             remove_invalid_values=True,
         )
+        self.logger.debug(f"summary: {summary}")
         score = round(summary_pred_ids.sequences_scores.cpu().numpy()[0], 4)
 
         return summary, score
@@ -204,15 +208,14 @@ class Summarizer:
         :return: a list of summaries, a list of scores, and a list of the input text for each batch
         """
 
-        logger = logging.getLogger(__name__)
         # log all input parameters
         if batch_length and batch_length < 512:
-            logger.warning(
+            self.logger.warning(
                 "WARNING: entered batch_length was too low at {batch_length}, resetting to 512"
             )
             batch_length = 512
 
-        logger.debug(
+        self.logger.debug(
             f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
         )
         if kwargs:
@@ -250,7 +253,7 @@ class Summarizer:
                 "summary_score": score,
             }
             gen_summaries.append(_sum)
-            logger.debug(f"\n\t{result[0]}\nScore:\t{score}")
+            self.logger.debug(f"\n\t{result[0]}\nScore:\t{score}")
             pbar.update()
 
         pbar.close()
@@ -378,10 +381,12 @@ class Summarizer:
         **kwargs,
     ) -> Path:
         """
-        summarize_file - a function that takes a text file and returns a summary
+        summarize_file - summarize a text file and save the summary to a file
 
         :param str or Path file_path: the path to the text file
         :param str or Path output_dir: the directory to save the summary to, defaults to None (current working directory)
+        :param int batch_length: number of tokens to use in each batch, defaults to None (self.token_batch_length)
+        :param int batch_stride: number of tokens to stride between batches, defaults to None (self.batch_stride)
         :param bool lowercase: whether to lowercase the text prior to summarization, defaults to False
 
         :return Path: the path to the summary file
@@ -410,7 +415,7 @@ class Summarizer:
 
     def save_params(
         self,
-        output_dir: str or Path = None,
+        output_path: str or Path = None,
         hf_tag: str = None,
         verbose: bool = False,
     ) -> None:
@@ -418,14 +423,18 @@ class Summarizer:
         save_params - save the parameters of the run to a json file
 
         :param dict params: parameters to save
-        :param str or Path output_dir: directory to save the parameters to
+        :param str or Path output_path: directory or filepath to save the parameters to
         :param str hf_tag: the model tag on huggingface (will be used instead of self.model_name_or_path)
         :param bool verbose: whether to log the parameters
 
         :return: None
         """
-        output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
-        metadata_path = output_dir / "summarization_parameters.json"
+        output_path = Path(output_path) if output_path is not None else Path.cwd()
+        metadata_path = (
+            output_path / "summarization_parameters.json"
+            if output_path.is_dir()
+            else output_path
+        )  # if output_path is a file, use that, otherwise use the default name
 
         exported_params = self.get_inference_params().copy()
         exported_params["META_huggingface_model"] = (
@@ -440,3 +449,4 @@ class Summarizer:
         logging.debug(f"Saved parameters to {metadata_path}")
         if verbose:
             self.logger.info(f"parameters: {exported_params}")
+            print(f"saved parameters to {metadata_path}")
