@@ -193,3 +193,14 @@ def postprocess_booksummary(text: str, custom_phrases: list = None) -> str:
 
         text = text.replace(pr, "")
     return text
+
+
+def check_bitsandbytes_available():
+    """
+    check_bitsandbytes_available - check if the bitsandbytes library is available
+    """
+    try:
+        import bitsandbytes
+    except ImportError:
+        return False
+    return True
