@@ -25,8 +25,6 @@ This package provides easy-to-use interfaces for using summarization models on t
 
 For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/textsum/wiki)
 
-⚠️ _This is a WIP, but general functionality is available_ ⚠️
-
 ---
 
 - [textsum](#textsum)
