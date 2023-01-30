@@ -58,6 +58,13 @@ def get_parser():
         help="flag to not use cuda if available",
     )
     parser.add_argument(
+        "-8bit",
+        "--load_in_8bit",
+        action="store_true",
+        dest="load_in_8bit",
+        help="flag to load the model in 8 bit precision (requires bitsandbytes)",
+    )
+    parser.add_argument(
         "-batch",
         "--batch_length",
         dest="batch_length",
@@ -205,6 +212,7 @@ def main(args):
         token_batch_length=args.batch_length,
         batch_stride=args.batch_stride,
         max_length_ratio=args.max_length_ratio,
+        load_in_8bit=args.load_in_8bit,
         **params,
     )
 
