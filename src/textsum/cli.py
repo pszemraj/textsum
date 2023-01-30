@@ -53,6 +53,11 @@ def get_parser():
         help="the name of the model to use for summarization",
     )
     parser.add_argument(
+        "--no_cuda",
+        action="store_true",
+        help="flag to not use cuda if available",
+    )
+    parser.add_argument(
         "-batch",
         "--batch_length",
         dest="batch_length",
@@ -87,11 +92,6 @@ def get_parser():
         type=float,
         default=2.5,
         help="the repetition penalty to use for beam search",
-    )
-    parser.add_argument(
-        "--no_cuda",
-        action="store_true",
-        help="flag to not use cuda if available",
     )
     parser.add_argument(
         "-length_ratio",
@@ -170,9 +170,8 @@ def get_parser():
         help="the directory containing the input files",
     )
 
-    # if there are no args, print the help
     if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
+        parser.print_help(sys.stderr)  # no args, print help
         sys.exit(1)
 
     return parser
