@@ -23,7 +23,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 
 from textsum.summarize import Summarizer
-from textsum.utils import setup_logging
+from textsum.utils import enable_tf32, setup_logging
 
 
 def get_parser():
@@ -56,6 +56,12 @@ def get_parser():
         "--no_cuda",
         action="store_true",
         help="flag to not use cuda if available",
+    )
+    parser.add_argument(
+        "--tf32",
+        action="store_true",
+        dest="tf32",
+        help="enable tf32 data type for computation (requires ampere series GPU or newer)",
     )
     parser.add_argument(
         "-8bit",
@@ -205,6 +211,9 @@ def main(args):
         "early_stopping": args.early_stopping,
         "do_sample": False,
     }
+
+    if args.tf32:
+        enable_tf32()  # enable tf32 for computation
 
     summarizer = Summarizer(
         model_name_or_path=args.model_name,
