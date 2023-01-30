@@ -21,7 +21,7 @@
 
 > utility for using transformers summarization models on text docs
 
-This package is to provides easy-to-use interfaces for using summarization models on text documents of arbitrary length. Currently implemented interfaces include a python API, CLI, and a shareable demo app.
+This package provides easy-to-use interfaces for using summarization models on text documents of arbitrary length. Currently implemented interfaces include a python API, CLI, and a shareable demo app.
 
 For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/textsum/wiki)
 
@@ -55,7 +55,7 @@ Install using pip:
 pip install textsum
 ```
 
-The `textsum` package is now installed in your virtual environment. CLI commands/python API can be summarize text docs from anywhere. see the [Usage](#usage) section for more details.
+The `textsum` package is now installed in your virtual environment. CLI commands/python API can summarize text docs from anywhere. see the [Usage](#usage) section for more details.
 
 ### Full Installation
 
@@ -70,7 +70,7 @@ pip install -e .[all]
 
 ### Additional Details
 
-This package uses the [clean-text](https://github.com/jfilter/clean-text) python package, and like the "base" version of the package **does not** include the GPL-licensed `unidecode` dependency. If you want to use the `unidecode` package, install the package as an extra with `pip`:
+This package uses the [clean-text](https://github.com/jfilter/clean-text) python package, and like the "base" version of the package, **does not** include the GPL-licensed `unidecode` dependency. If you want to use the `unidecode` package, install the package as an extra with `pip`:
 
 ```bash
 pip install textsum[unidecode]
@@ -90,7 +90,7 @@ There are three ways to use this package:
 
 To use the python API, import the `Summarizer` class and instantiate it. This will load the default model and parameters.
 
-You can then use the `summarize_string` method to summarize a long string of text.
+You can then use the `summarize_string` method to summarize a long text string.
 
 ```python
 from textsum.summarize import Summarizer
@@ -128,7 +128,7 @@ usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [--no_cuda] [--tf32] [-8
                    [--no_early_stopping] [--shuffle] [--lowercase] [-v] [-vv] [-lf LOGFILE]
                    input_dir
 
-For more information, run:
+For more information, run the following:
 
 ```bash
 textsum-dir --help
@@ -150,11 +150,11 @@ textsum-ui
 
 This will start a local server that you can access in your browser & a shareable link will be printed to the console.
 
-[^1]: The demo is currently minimal, but will be expanded in the future to accept other arguments and options.
+[^1]: The demo is minimal but will be expanded to accept other arguments and options.
 
 ## Using Big Models
 
-Summarization is a memory-intensive task, and the[default model is relatively small, and efficient](https://huggingface.co/pszemraj/long-t5-tglobal-base-16384-book-summary) for long-form text summarization. If you want to use a bigger model, you can do so by specifying the `model_name_or_path` argument when instantiating the `Summarizer` class.
+Summarization is a memory-intensive task, and the [default model is relatively small and efficient](https://huggingface.co/pszemraj/long-t5-tglobal-base-16384-book-summary) for long-form text summarization. If you want to use a bigger model, you can specify the `model_name_or_path` argument when instantiating the `Summarizer` class.
 
 ```python
 summarizer = Summarizer(model_name_or_path='pszemraj/long-t5-tglobal-xl-16384-book-summary')
@@ -170,7 +170,7 @@ textsum-dir /path/to/dir -m pszemraj/long-t5-tglobal-xl-16384-book-summary
 
 #### EFficient Inference
 
-Some methods of reducing memory usage including loading the model in 8-bit precision via LLM.int8, and using the `--tf32` flag to use TensorFloat32 precision. See the [transformers docs](https://huggingface.co/docs/transformers/perf_infer_gpu_one#efficient-inference-on-a-single-gpu) for more details on how this works.
+Some methods of reducing memory usage _if you have compatible hardware_ include loading the model in 8-bit precision via [LLM.int8](https://arxiv.org/abs/2208.07339) and using the `--tf32` flag to use TensorFloat32 precision. See the [transformers docs](https://huggingface.co/docs/transformers/perf_infer_gpu_one#efficient-inference-on-a-single-gpu) for more details on how this works.
 
 To use these options, use the `-8bit` and `--tf32` flags when using the CLI:
 
@@ -184,11 +184,13 @@ Or in python, using the `load_in_8bit` argument:
 summarizer = Summarizer(load_in_8bit=True)
 ```
 
-If using the python API, it's better to initiate tf32 yourself, see [here](https://huggingface.co/docs/transformers/perf_train_gpu_one#tf32) for how.
+If using the python API, it's better to initiate tf32 yourself; see [here](https://huggingface.co/docs/transformers/perf_train_gpu_one#tf32) for how.
 
 #### Parameters
 
 Memory usage can also be reduced by adjusting the parameters for inference. This is discussed in detail in the [project wiki](https://github.com/pszemraj/textsum/wiki).
+
+tl;dr for this README, you can use the `.set_inference_params()` and `.get_inference_params()` methods to adjust the parameters for inference.
 
 ---
 
@@ -203,10 +205,11 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to contribute
 - [x] add CLI for summarization of all text files in a directory
 - [x] python API for summarization of text docs
 - [ ] add argparse CLI for UI demo
-- [x] put on pypi
-- [ ] optimum inference integration, LLM.int8 inference
+- [x] put on PyPI
+- [x] LLM.int8 inference
+- [ ] optimum inference integration
 - [ ] better documentation [in the wiki](https://github.com/pszemraj/textsum/wiki), details on improving performance (speed, quality, memory usage, etc.)
-- [ ] improvements to OCR helper module
+- [ ] improvements to the PDF OCR helper module
 
 _Other ideas? Open an issue or PR!_
 
