@@ -37,6 +37,10 @@ For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/
     - [Python API](#python-api)
     - [CLI](#cli)
     - [Demo App](#demo-app)
+  - [Using Big Models](#using-big-models)
+    - [Reducing Memory Usage](#reducing-memory-usage)
+      - [EFficient Inference](#efficient-inference)
+      - [Parameters](#parameters)
   - [Contributing](#contributing)
   - [Roadmap](#roadmap)
 
@@ -115,13 +119,14 @@ textsum-dir /path/to/dir
 
 The following options are available:
 
-```
-usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
-                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY] [--no_cuda] [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
-                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE] [--no_early_stopping] [--shuffle]
-                   [--lowercase] [-v] [-vv] [-lf LOGFILE]
+```bash
+usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [--no_cuda] [--tf32] [-8bit]
+                   [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
+                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY]
+                   [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
+                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE]
+                   [--no_early_stopping] [--shuffle] [--lowercase] [-v] [-vv] [-lf LOGFILE]
                    input_dir
-```
 
 For more information, run:
 
@@ -146,6 +151,44 @@ textsum-ui
 This will start a local server that you can access in your browser & a shareable link will be printed to the console.
 
 [^1]: The demo is currently minimal, but will be expanded in the future to accept other arguments and options.
+
+## Using Big Models
+
+Summarization is a memory-intensive task, and the[default model is relatively small, and efficient](https://huggingface.co/pszemraj/long-t5-tglobal-base-16384-book-summary) for long-form text summarization. If you want to use a bigger model, you can do so by specifying the `model_name_or_path` argument when instantiating the `Summarizer` class.
+
+```python
+summarizer = Summarizer(model_name_or_path='pszemraj/long-t5-tglobal-xl-16384-book-summary')
+```
+
+You can also use the `-m` argument when using the CLI:
+
+```bash
+textsum-dir /path/to/dir -m pszemraj/long-t5-tglobal-xl-16384-book-summary
+```
+
+### Reducing Memory Usage
+
+#### EFficient Inference
+
+Some methods of reducing memory usage including loading the model in 8-bit precision via LLM.int8, and using the `--tf32` flag to use TensorFloat32 precision. See the [transformers docs](https://huggingface.co/docs/transformers/perf_infer_gpu_one#efficient-inference-on-a-single-gpu) for more details on how this works.
+
+To use these options, use the `-8bit` and `--tf32` flags when using the CLI:
+
+```bash
+textsum-dir /path/to/dir -8bit --tf32
+```
+
+Or in python, using the `load_in_8bit` argument:
+
+```python
+summarizer = Summarizer(load_in_8bit=True)
+```
+
+If using the python API, it's better to initiate tf32 yourself, see [here](https://huggingface.co/docs/transformers/perf_train_gpu_one#tf32) for how.
+
+#### Parameters
+
+Memory usage can also be reduced by adjusting the parameters for inference. This is discussed in detail in the [project wiki](https://github.com/pszemraj/textsum/wiki).
 
 ---
 
