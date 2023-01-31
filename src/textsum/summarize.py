@@ -11,7 +11,11 @@ from cleantext import clean
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-from textsum.utils import get_timestamp, postprocess_booksummary
+from textsum.utils import (
+    check_bitsandbytes_available,
+    get_timestamp,
+    postprocess_booksummary,
+)
 
 
 class Summarizer:
@@ -27,6 +31,7 @@ class Summarizer:
         token_batch_length: int = 2048,
         batch_stride: int = 16,
         max_length_ratio: float = 0.25,
+        load_in_8bit=False,
         **kwargs,
     ):
         """
@@ -38,6 +43,7 @@ class Summarizer:
         :param int token_batch_length: the amount of tokens to process in a batch, defaults to 2048
         :param int batch_stride: the amount of tokens to stride the batch by, defaults to 16
         :param float max_length_ratio: the ratio of the token_batch_length to use as the max_length for the model, defaults to 0.25
+        :param bool load_in_8bit: whether to load the model in 8bit precision (LLM.int8), defaults to False
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
@@ -45,9 +51,24 @@ class Summarizer:
         self.model_name_or_path = model_name_or_path
         self.device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
         self.logger.debug(f"loading model {model_name_or_path} to {self.device}")
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(
-            self.model_name_or_path,
-        ).to(self.device)
+
+        if load_in_8bit:
+            logging.info("Loading model in 8-bit precision")
+
+            if not check_bitsandbytes_available():
+                raise ImportError(
+                    "You must install bitsandbytes to load the model in 8-bit precision. Please run `pip install bitsandbytes` or `pip install textsum[8bit]`"
+                )
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(
+                model_name_or_path,
+                load_in_8bit=load_in_8bit,
+                device_map="auto",
+            )
+        else:
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(
+                self.model_name_or_path,
+            ).to(self.device)
+
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
         self.is_general_attention_model = (
             is_general_attention_model  # TODO: add a check later

@@ -9,6 +9,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import torch
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
@@ -193,3 +195,24 @@ def postprocess_booksummary(text: str, custom_phrases: list = None) -> str:
 
         text = text.replace(pr, "")
     return text
+
+
+def check_bitsandbytes_available():
+    """
+    check_bitsandbytes_available - check if the bitsandbytes library is available
+    """
+    try:
+        import bitsandbytes
+    except ImportError:
+        return False
+    return True
+
+
+def enable_tf32():
+    """
+    enable_tf32 - enables computation in tf32 precision. (requires ampere series GPU or newer)
+
+        See https://blogs.nvidia.com/blog/2020/05/14/tensorfloat-32-precision-format/ for details
+    """
+    logging.debug("Enabling TF32 computation")
+    torch.backends.cuda.matmul.allow_tf32 = True

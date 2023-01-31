@@ -1,10 +1,12 @@
 """
 cli.py - a module containing functions for the command line interface (to run the summarization on a directory of files)
 
-usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
-                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY] [--no_cuda] [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
-                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE] [--no_early_stopping] [--shuffle]
-                   [--lowercase] [-v] [-vv] [-lf LOGFILE]
+usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [--no_cuda] [--tf32] [-8bit]
+                   [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
+                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY]
+                   [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
+                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE]
+                   [--no_early_stopping] [--shuffle] [--lowercase] [-v] [-vv] [-lf LOGFILE]
                    input_dir
 
 Summarize text files in a directory
@@ -23,7 +25,7 @@ from pathlib import Path
 from tqdm.auto import tqdm
 
 from textsum.summarize import Summarizer
-from textsum.utils import setup_logging
+from textsum.utils import enable_tf32, setup_logging
 
 
 def get_parser():
@@ -51,6 +53,24 @@ def get_parser():
         type=str,
         default="pszemraj/long-t5-tglobal-base-16384-book-summary",
         help="the name of the model to use for summarization",
+    )
+    parser.add_argument(
+        "--no_cuda",
+        action="store_true",
+        help="flag to not use cuda if available",
+    )
+    parser.add_argument(
+        "--tf32",
+        action="store_true",
+        dest="tf32",
+        help="enable tf32 data type for computation (requires ampere series GPU or newer)",
+    )
+    parser.add_argument(
+        "-8bit",
+        "--load_in_8bit",
+        action="store_true",
+        dest="load_in_8bit",
+        help="flag to load the model in 8 bit precision (requires bitsandbytes)",
     )
     parser.add_argument(
         "-batch",
@@ -87,11 +107,6 @@ def get_parser():
         type=float,
         default=2.5,
         help="the repetition penalty to use for beam search",
-    )
-    parser.add_argument(
-        "--no_cuda",
-        action="store_true",
-        help="flag to not use cuda if available",
     )
     parser.add_argument(
         "-length_ratio",
@@ -170,9 +185,8 @@ def get_parser():
         help="the directory containing the input files",
     )
 
-    # if there are no args, print the help
     if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
+        parser.print_help(sys.stderr)  # no args, print help
         sys.exit(1)
 
     return parser
@@ -200,12 +214,16 @@ def main(args):
         "do_sample": False,
     }
 
+    if args.tf32:
+        enable_tf32()  # enable tf32 for computation
+
     summarizer = Summarizer(
         model_name_or_path=args.model_name,
         use_cuda=not args.no_cuda,
         token_batch_length=args.batch_length,
         batch_stride=args.batch_stride,
         max_length_ratio=args.max_length_ratio,
+        load_in_8bit=args.load_in_8bit,
         **params,
     )
 
