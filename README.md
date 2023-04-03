@@ -37,10 +37,10 @@ For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/
     - [Demo App](#demo-app)
   - [Using Big Models](#using-big-models)
     - [Reducing Memory Usage](#reducing-memory-usage)
-      - [EFficient Inference](#efficient-inference)
+      - [Efficient Inference](#efficient-inference)
       - [Parameters](#parameters)
   - [Contributing](#contributing)
-  - [Roadmap](#roadmap)
+  - [Road Map](#road-map)
 
 ---
 
@@ -167,7 +167,7 @@ textsum-dir /path/to/dir -m pszemraj/long-t5-tglobal-xl-16384-book-summary
 
 ### Reducing Memory Usage
 
-#### EFficient Inference
+#### Efficient Inference
 
 Some methods of reducing memory usage _if you have compatible hardware_ include loading the model in 8-bit precision via [LLM.int8](https://arxiv.org/abs/2208.07339) and using the `--tf32` flag to use TensorFloat32 precision. See the [transformers docs](https://huggingface.co/docs/transformers/perf_infer_gpu_one#efficient-inference-on-a-single-gpu) for more details on how this works. Using LLM.int8 requires the [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) package, which can either be installed directly or via the `textsum[8bit]` extra:
 
@@ -203,7 +203,7 @@ Contributions are welcome! Please open an issue or PR if you have any ideas or s
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to contribute.
 
-## Roadmap
+## Road Map
 
 - [x] add CLI for summarization of all text files in a directory
 - [x] python API for summarization of text docs
