@@ -3,6 +3,7 @@ summarize.py - a module that contains functions for summarizing text
 """
 import json
 import logging
+import sys
 import warnings
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from textsum.utils import (
     check_bitsandbytes_available,
     get_timestamp,
     postprocess_booksummary,
+    validate_pytorch2,
 )
 
 
@@ -31,7 +33,8 @@ class Summarizer:
         token_batch_length: int = 2048,
         batch_stride: int = 16,
         max_length_ratio: float = 0.25,
-        load_in_8bit=False,
+        load_in_8bit: bool = False,
+        compile_model: bool = False,
         **kwargs,
     ):
         """
@@ -44,6 +47,7 @@ class Summarizer:
         :param int batch_stride: the amount of tokens to stride the batch by, defaults to 16
         :param float max_length_ratio: the ratio of the token_batch_length to use as the max_length for the model, defaults to 0.25
         :param bool load_in_8bit: whether to load the model in 8bit precision (LLM.int8), defaults to False
+        :param bool compile_model: whether to compile the model (pytorch 2.0+ only), defaults to False
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
@@ -68,6 +72,19 @@ class Summarizer:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 self.model_name_or_path,
             ).to(self.device)
+
+        if compile_model:
+            if validate_pytorch2() and sys.platform != "win32":
+                self.logger.info("Compiling model")
+                self.model = torch.compile(self.model)
+            else:
+                self.logger.warning(
+                    "Unable to compile model. Please upgrade to PyTorch 2.0 and run on a non-Windows platform"
+                )
+        else:
+            self.logger.debug("Not compiling model")
+
+        self.model.eval()
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
         self.is_general_attention_model = (
@@ -261,7 +278,6 @@ class Summarizer:
         pbar = tqdm(total=len(in_id_arr), desc="Generating Summaries")
 
         for _id, _mask in zip(in_id_arr, att_arr):
-
             result, score = self.summarize_and_score(
                 ids=_id,
                 mask=_mask,
@@ -337,7 +353,6 @@ class Summarizer:
             encoding="utf-8",
             errors="ignore",
         ) as fo:
-
             fo.writelines(full_summary)
 
         if save_scores:
@@ -347,7 +362,6 @@ class Summarizer:
                 encoding="utf-8",
                 errors="ignore",
             ) as fo:
-
                 fo.write("\n" * 3)
                 fo.write(f"\n\nSection Scores for {target_file.stem}:\n")
                 fo.writelines(scores_text)

@@ -7,7 +7,6 @@ import re
 import subprocess
 import sys
 from datetime import datetime
-from pathlib import Path
 
 import torch
 
@@ -73,6 +72,14 @@ def check_GPU(verbose=False):
         print(f"GPU found: {gpu_name}")
     # check if it is an A100
     return bool("A100" in gpu_name)
+
+
+def validate_pytorch2(torch_version: str = None):
+    torch_version = torch.__version__ if torch_version is None else torch_version
+
+    pattern = r"^2\.\d+(\.\d+)*"
+
+    return True if re.match(pattern, torch_version) else False
 
 
 def cstr(s, color="black"):
@@ -192,7 +199,6 @@ def postprocess_booksummary(text: str, custom_phrases: list = None) -> str:
     if custom_phrases is not None:
         REMOVAL_PHRASES.extend(custom_phrases)
     for pr in REMOVAL_PHRASES:
-
         text = text.replace(pr, "")
     return text
 
