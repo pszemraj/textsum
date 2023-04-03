@@ -73,6 +73,11 @@ def get_parser():
         help="flag to load the model in 8 bit precision (requires bitsandbytes)",
     )
     parser.add_argument(
+        "--compile",
+        action="store_true",
+        help="compile the model for inference (requires torch 2.0+)",
+    )
+    parser.add_argument(
         "-batch",
         "--batch_length",
         dest="batch_length",
@@ -224,6 +229,7 @@ def main(args):
         batch_stride=args.batch_stride,
         max_length_ratio=args.max_length_ratio,
         load_in_8bit=args.load_in_8bit,
+        compile_model=args.compile,
         **params,
     )
 
@@ -245,7 +251,6 @@ def main(args):
 
     # get the batches
     for f in tqdm(input_files):
-
         _ = summarizer.summarize_file(
             file_path=f, output_dir=output_dir, lowercase=args.lowercase
         )
