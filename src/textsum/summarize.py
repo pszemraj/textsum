@@ -35,6 +35,7 @@ class Summarizer:
         max_length_ratio: float = 0.25,
         load_in_8bit: bool = False,
         compile_model: bool = False,
+        optimum_onnx: bool = False,
         **kwargs,
     ):
         """
@@ -68,6 +69,14 @@ class Summarizer:
                 load_in_8bit=load_in_8bit,
                 device_map="auto",
             )
+        elif optimum_onnx:
+            from optimum.onnxruntime import ORTModelForSeq2SeqLM
+
+            self.logger.info("Loading model in ONNX Runtime")
+            self.model = ORTModelForSeq2SeqLM.from_pretrained(
+                self.model_name_or_path,
+            )
+            # TODO figure out GPU support
         else:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 self.model_name_or_path,

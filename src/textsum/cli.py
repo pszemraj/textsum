@@ -78,6 +78,11 @@ def get_parser():
         help="compile the model for inference (requires torch 2.0+)",
     )
     parser.add_argument(
+        "--optimum_onnx",
+        action="store_true",
+        help="optimize the model for inference (requires onnxruntime-tools)",
+    )
+    parser.add_argument(
         "-batch",
         "--batch_length",
         dest="batch_length",
@@ -230,6 +235,7 @@ def main(args):
         max_length_ratio=args.max_length_ratio,
         load_in_8bit=args.load_in_8bit,
         compile_model=args.compile,
+        optimum_onnx=args.optimum_onnx,
         **params,
     )
 
