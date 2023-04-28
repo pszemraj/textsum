@@ -73,9 +73,13 @@ class Summarizer:
             from optimum.onnxruntime import ORTModelForSeq2SeqLM
             import onnxruntime
 
+            if self.device == "cuda":
+                self.logger.warning(
+                    "ONNX runtime withcuda, needs an additional package. manually install onnxruntime-gpu"
+                )
             provider = (
                 "CUDAExecutionProvider"
-                if self.device == "cuda"
+                if "GPU" in onnxruntime.get_device() and self.device == "cuda"
                 else "CPUExecutionProvider"
             )
             self.logger.info(f"Loading model in ONNX Runtime to {self.device}")
