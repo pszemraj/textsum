@@ -93,7 +93,8 @@ class Summarizer:
         else:
             self.logger.debug("Not compiling model")
 
-        self.model.eval()
+        if not optimum_onnx:
+            self.model.eval()
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
         self.is_general_attention_model = (
