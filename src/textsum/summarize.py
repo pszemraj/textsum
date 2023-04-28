@@ -75,7 +75,7 @@ class Summarizer:
 
             provider = (
                 "CUDAExecutionProvider"
-                if "GPU" in onnxruntime.get_device() and self.device == "cuda"
+                if self.device == "cuda"
                 else "CPUExecutionProvider"
             )
             self.logger.info(f"Loading model in ONNX Runtime to {self.device}")
