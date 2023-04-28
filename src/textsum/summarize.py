@@ -71,12 +71,17 @@ class Summarizer:
             )
         elif optimum_onnx:
             from optimum.onnxruntime import ORTModelForSeq2SeqLM
+            import onnxruntime
 
-            self.logger.info("Loading model in ONNX Runtime")
-            self.model = ORTModelForSeq2SeqLM.from_pretrained(
-                self.model_name_or_path,
+            provider = (
+                "CUDAExecutionProvider"
+                if "GPU" in onnxruntime.get_device() and self.device == "cuda"
+                else "CPUExecutionProvider"
             )
-            # TODO figure out GPU support
+            self.logger.info(f"Loading model in ONNX Runtime to {self.device}")
+            self.model = ORTModelForSeq2SeqLM.from_pretrained(
+                self.model_name_or_path, provider=provider, export=True
+            )
         else:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 self.model_name_or_path,
