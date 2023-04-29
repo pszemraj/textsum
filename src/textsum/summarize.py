@@ -254,6 +254,7 @@ class Summarizer:
         input_text: str,
         batch_length: int = None,
         batch_stride: int = None,
+        pad_incomplete_batch: bool = True,
         **kwargs,
     ):
         """
@@ -262,6 +263,7 @@ class Summarizer:
         :param str input_text: the text to summarize
         :param int batch_length: number of tokens to include in each input batch, default None (self.token_batch_length)
         :param int batch_stride: number of tokens to stride between batches, default None (self.token_batch_stride)
+        :param bool pad_incomplete_batch: whether to pad the last batch to the length of the longest batch, default True
         :return: a list of summaries, a list of scores, and a list of the input text for each batch
         """
 
@@ -296,6 +298,16 @@ class Summarizer:
         pbar = tqdm(total=len(in_id_arr), desc="Generating Summaries")
 
         for _id, _mask in zip(in_id_arr, att_arr):
+            # If the batch is smaller than batch_length, pad it with the model's pad token
+            if len(_id) < batch_length and pad_incomplete_batch:
+                self.logger.debug(
+                    f"padding batch of length {len(_id)} to {batch_length}"
+                )
+                pad_token = self.tokenizer.pad_token_id
+                difference = batch_length - len(_id)
+                _id = torch.cat([_id, torch.tensor([pad_token] * difference)])
+                _mask = torch.cat([_mask, torch.tensor([0] * difference)])
+
             result, score = self.summarize_and_score(
                 ids=_id,
                 mask=_mask,
