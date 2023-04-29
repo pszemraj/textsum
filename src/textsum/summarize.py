@@ -288,7 +288,6 @@ class Summarizer:
             max_length=batch_length or self.token_batch_length,
             stride=batch_stride or self.batch_stride,
             return_overflowing_tokens=True,
-            add_special_tokens=False,
             return_tensors="pt",
         )
         in_id_arr, att_arr = encoded_input.input_ids, encoded_input.attention_mask
