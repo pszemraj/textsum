@@ -12,6 +12,7 @@ from cleantext import clean
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
+import textsum
 from textsum.utils import (
     check_bitsandbytes_available,
     get_timestamp,
@@ -506,6 +507,7 @@ class Summarizer:
             self.model_name_or_path if hf_tag is None else hf_tag
         )
         exported_params["META_date"] = get_timestamp()
+        exported_params["META_textsum_version"] = textsum.__version__
 
         self.logger.info(f"Saving parameters to {metadata_path}")
         with open(metadata_path, "w") as write_file:
