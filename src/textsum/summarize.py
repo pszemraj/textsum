@@ -274,6 +274,8 @@ class Summarizer:
                 "WARNING: entered batch_length was too low at {batch_length}, resetting to 512"
             )
             batch_length = 512
+        else:
+            batch_length = batch_length or self.token_batch_length
 
         self.logger.debug(
             f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
@@ -288,7 +290,7 @@ class Summarizer:
             input_text,
             padding="max_length",
             truncation=True,
-            max_length=batch_length or self.token_batch_length,
+            max_length=batch_length,
             stride=batch_stride or self.batch_stride,
             return_overflowing_tokens=True,
             return_tensors="pt",
