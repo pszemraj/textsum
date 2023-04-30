@@ -261,9 +261,12 @@ def main(args):
             file_path=f, output_dir=output_dir, lowercase=args.lowercase
         )
 
-    logging.info(f"finished summarization loop - output dir: {output_dir.resolve()}")
+    logging.debug("finished summarization loop")
     summarizer.save_params(output_path=output_dir, hf_tag=args.model_name)
-    logging.info("finished summarizing files")
+    summarizer.save_config(output_dir / "textsum_config.json")
+    logging.info(
+        f"finished summarizing files - output dir:\n\t{str(output_dir.resolve())}"
+    )
 
 
 def run():

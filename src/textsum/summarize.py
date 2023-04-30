@@ -26,6 +26,19 @@ class Summarizer:
     Summarizer - a class that contains functions for summarizing text with a transformers model
     """
 
+    settable_inference_params = [
+        "min_length",
+        "max_length",
+        "no_repeat_ngram_size",
+        "encoder_no_repeat_ngram_size",
+        "repetition_penalty",
+        "num_beams",
+        "num_beam_groups",
+        "length_penalty",
+        "early_stopping",
+        "do_sample",
+    ]  # list of inference parameters that can be set
+
     def __init__(
         self,
         model_name_or_path: str = "pszemraj/long-t5-tglobal-base-16384-book-summary",
@@ -76,7 +89,7 @@ class Summarizer:
 
             if self.device == "cuda":
                 self.logger.warning(
-                    "ONNX runtime withcuda, needs an additional package. manually install onnxruntime-gpu"
+                    "ONNX runtime+cuda needs an additional package. manually install onnxruntime-gpu"
                 )
             provider = (
                 "CUDAExecutionProvider"
@@ -91,6 +104,7 @@ class Summarizer:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 self.model_name_or_path,
             ).to(self.device)
+            # device_map="auto" is not added for all models
 
         if compile_model:
             if validate_pytorch2() and sys.platform != "win32":
@@ -118,18 +132,6 @@ class Summarizer:
         self.batch_stride = batch_stride
         self.max_len_ratio = max_length_ratio
 
-        self.settable_inference_params = [
-            "min_length",
-            "max_length",
-            "no_repeat_ngram_size",
-            "encoder_no_repeat_ngram_size",
-            "repetition_penalty",
-            "num_beams",
-            "num_beam_groups",
-            "length_penalty",
-            "early_stopping",
-            "do_sample",
-        ]  # list of inference parameters that can be set
         self.inference_params = {
             "min_length": 8,
             "max_length": int(token_batch_length * max_length_ratio),
@@ -150,6 +152,21 @@ class Summarizer:
                 self.logger.warning(
                     f"{key} is not a supported inference parameter, ignoring"
                 )
+
+        self.config = {
+            "model_name_or_path": model_name_or_path,
+            "use_cuda": use_cuda,
+            # "is_general_attention_model": is_general_attention_model, # TODO: validate later
+            "token_batch_length": token_batch_length,
+            "batch_stride": batch_stride,
+            "max_length_ratio": max_length_ratio,
+            "load_in_8bit": load_in_8bit,
+            "compile_model": compile_model,
+            "optimum_onnx": optimum_onnx,
+            "device": self.device,
+            "inference_params": self.inference_params,
+            "textsum_version": textsum.__version__,
+        }
 
     def set_inference_params(
         self,
@@ -191,6 +208,15 @@ class Summarizer:
                 self.logger.warning(
                     f"{key} is not a valid inference parameter, ignoring"
                 )
+
+    def print_config(self):
+        """print the current configuration"""
+        print(json.dumps(self.config, indent=2))
+
+    def save_config(self, path: str or Path = "textsum_config.json"):
+        """save the current configuration to a json file"""
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.config, f, indent=2)
 
     def get_inference_params(self):
         """get the inference parameters currently being used"""
@@ -505,15 +531,18 @@ class Summarizer:
         )  # if output_path is a file, use that, otherwise use the default name
 
         exported_params = self.get_inference_params().copy()
-        exported_params["META_huggingface_model"] = (
-            self.model_name_or_path if hf_tag is None else hf_tag
-        )
-        exported_params["META_date"] = get_timestamp()
-        exported_params["META_textsum_version"] = textsum.__version__
+        metadata = {
+            "META_huggingface_model": (
+                self.model_name_or_path if hf_tag is None else hf_tag
+            ),
+            "META_date": get_timestamp(),
+            "META_textsum_version": textsum.__version__,
+        }
+        exported_params["METADATA"] = metadata
 
         self.logger.info(f"Saving parameters to {metadata_path}")
         with open(metadata_path, "w") as write_file:
-            json.dump(exported_params, write_file, indent=4)
+            json.dump(exported_params, write_file, indent=2)
 
         logging.debug(f"Saved parameters to {metadata_path}")
         if verbose:
