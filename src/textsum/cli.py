@@ -66,6 +66,11 @@ def get_parser():
         help="enable tf32 data type for computation (requires ampere series GPU or newer)",
     )
     parser.add_argument(
+        "--force_cache",
+        action="store_true",
+        dest="force the use_cache flag to True in the Summarizer",
+    )
+    parser.add_argument(
         "-8bit",
         "--load_in_8bit",
         action="store_true",
@@ -236,6 +241,7 @@ def main(args):
         load_in_8bit=args.load_in_8bit,
         compile_model=args.compile,
         optimum_onnx=args.optimum_onnx,
+        force_cache=args.force_cache,
         **params,
     )
 

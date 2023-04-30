@@ -50,6 +50,7 @@ class Summarizer:
         load_in_8bit: bool = False,
         compile_model: bool = False,
         optimum_onnx: bool = False,
+        force_cache: bool = False,
         **kwargs,
     ):
         """
@@ -64,6 +65,7 @@ class Summarizer:
         :param bool load_in_8bit: whether to load the model in 8bit precision (LLM.int8), defaults to False
         :param bool compile_model: whether to compile the model (pytorch 2.0+ only), defaults to False
         :param bool optimum_onnx: whether to load the model in ONNX Runtime, defaults to False
+        :param bool force_cache: whether to force the model to use cache, defaults to False
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
@@ -130,6 +132,10 @@ class Summarizer:
         )
 
         self.logger.info(f"Loaded model {model_name_or_path} to {self.device}")
+
+        if force_cache:
+            self.logger.info("Forcing use_cache to True")
+            self.model.config_use_cache = True
 
         # set batch processing parameters
         self.token_batch_length = token_batch_length
