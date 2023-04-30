@@ -133,8 +133,9 @@ def main(
                 file_path=f, output_dir=output_dir, lowercase=lowercase
             )
         except Exception as e:
-            logging.error(f"failed to summarize file: {f}")
+            logging.error(f"failed to summarize file:\t{f}")
             logging.error(e)
+            print(e)
             failed_files.append(f)
 
     logging.info(f"failed to summarize {len(failed_files)} files")
