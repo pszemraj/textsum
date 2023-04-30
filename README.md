@@ -144,17 +144,16 @@ To summarize a directory of text files, run the following command:
 textsum-dir /path/to/dir
 ```
 
-The following options are available:
+Some useful options are:
 
-```bash
-usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [--no_cuda] [--tf32] [-8bit]
-                   [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
-                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY]
-                   [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
-                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE]
-                   [--no_early_stopping] [--shuffle] [--lowercase] [-v] [-vv] [-lf LOGFILE]
-                   input_dir
-```
+Arguments:
+
+- `input_dir`: The directory containing the input text files to be summarized.
+- `--model`: model name or path to use for summarization. (Optional)
+- `--shuffle`: Shuffle the input files before processing. (Optional)
+- `--skip_completed`: Skip already completed files in the output directory. (Optional)
+- `--batch_length`: The maximum length of each input batch. Default is 4096. (Optional)
+- `--output_dir`: The directory to write the summarized output files. Default is `./summarized/`. (Optional)
 
 For more information, run the following:
 
