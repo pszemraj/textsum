@@ -1,5 +1,8 @@
 """
 cli.py - Command line interface for textsum.
+
+Usage:
+    textsum-dir --help
 """
 import logging
 import pprint as pp
@@ -40,6 +43,7 @@ def main(
     loglevel: Optional[int] = 30,
     logfile: Optional[str] = None,
     file_extension: str = "txt",
+    skip_completed: bool = False,
 ):
     """
     Main function to summarize text files in a directory.
@@ -69,6 +73,10 @@ def main(
         loglevel (int, optional): The log level to use (default: 20 - INFO). Default: 30.
         logfile (str, optional): Path to the log file. This will set loglevel to INFO (if not set) and write to the file.
         file_extension (str, optional): The file extension to use when searching for input files.,  defaults to "txt"
+        skip_completed (bool, optional): Skip files that have already been summarized. Default: False.
+
+    Returns:
+        None
     """
     setup_logging(loglevel, logfile)
     logging.info("starting textsum cli")
@@ -116,6 +124,10 @@ def main(
 
     failed_files = []
     for f in tqdm(input_files, desc="summarizing files"):
+        _prospective_output_file = output_dir / f"{f.stem}_summary.txt"
+        if skip_completed and _prospective_output_file.exists():
+            logging.info(f"skipping file (found existing summary):\t{str(f)}")
+            continue
         try:
             _ = summarizer.summarize_file(
                 file_path=f, output_dir=output_dir, lowercase=lowercase
@@ -125,10 +137,11 @@ def main(
             logging.error(e)
             failed_files.append(f)
 
-    logging.debug("finished summarization loop")
     logging.info(f"failed to summarize {len(failed_files)} files")
     if len(failed_files) > 0:
         logging.info(f"failed files:\n\t{pp.pformat(failed_files)}")
+
+    logging.debug("saving summarizer params and config")
     summarizer.save_params(output_path=output_dir, hf_tag=model)
     summarizer.save_config(output_dir / "textsum_config.json")
     logging.info(
