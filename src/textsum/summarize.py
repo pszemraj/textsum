@@ -84,6 +84,7 @@ class Summarizer:
                 device_map="auto",
             )
         elif optimum_onnx:
+            self.logger.info("Loading model in ONNX Runtime LOCAL")
             from optimum.onnxruntime import ORTModelForSeq2SeqLM
             import onnxruntime
 
@@ -96,10 +97,12 @@ class Summarizer:
                 if "GPU" in onnxruntime.get_device() and self.device == "cuda"
                 else "CPUExecutionProvider"
             )
-            self.logger.info(f"Loading model in ONNX Runtime to {self.device}")
+            self.logger.info(f"Loading model in ONNX Runtime to provider:\t{provider}")
             self.model = ORTModelForSeq2SeqLM.from_pretrained(
-                self.model_name_or_path, provider=provider, export=True
-            )
+                self.model_name_or_path,
+                provider=provider,
+                export=not Path(self.model_name_or_path).is_dir(),
+            )  # if a directory, already exported
         else:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 self.model_name_or_path,
