@@ -185,7 +185,6 @@ class Summarizer:
         self,
         new_params: dict = None,
         config_file: str or Path = None,
-        config_metadata_id: str = "META_",
     ):
         """
         set_inference_params - update the inference parameters to use when summarizing text
@@ -203,7 +202,7 @@ class Summarizer:
         new_params = new_params or {}
         # load from config file if provided
         if config_file:
-            with open(config_file, "r") as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 config_params = json.load(f)
             config_params = {
                 k: v
@@ -222,6 +221,10 @@ class Summarizer:
                     f"{key} is not a valid inference parameter, ignoring"
                 )
 
+    def get_inference_params(self):
+        """get the inference parameters currently being used"""
+        return self.inference_params
+
     def print_config(self):
         """print the current configuration"""
         print(json.dumps(self.config, indent=2))
@@ -230,10 +233,6 @@ class Summarizer:
         """save the current configuration to a json file"""
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.config, f, indent=2)
-
-    def get_inference_params(self):
-        """get the inference parameters currently being used"""
-        return self.inference_params
 
     def update_loglevel(self, loglevel: int = logging.INFO):
         """update the loglevel of the logger"""
@@ -294,6 +293,7 @@ class Summarizer:
         input_text: str,
         batch_length: int = None,
         batch_stride: int = None,
+        min_batch_length: int = 512,
         pad_incomplete_batch: bool = True,
         **kwargs,
     ):
@@ -307,14 +307,14 @@ class Summarizer:
         :return: a list of summaries, a list of scores, and a list of the input text for each batch
         """
 
-        # log all input parameters
-        if batch_length and batch_length < 512:
+        batch_length = self.token_batch_length if batch_length is None else batch_length
+        batch_stride = self.batch_stride if batch_stride is None else batch_stride
+
+        if batch_length < min_batch_length:
             self.logger.warning(
-                "WARNING: entered batch_length was too low at {batch_length}, resetting to 512"
+                f"batch_length must be at least {min_batch_length}. Setting batch_length to {min_batch_length}"
             )
-            batch_length = 512
-        else:
-            batch_length = batch_length or self.token_batch_length
+            batch_length = min_batch_length
 
         self.logger.debug(
             f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
@@ -330,7 +330,7 @@ class Summarizer:
             padding="max_length",
             truncation=True,
             max_length=batch_length,
-            stride=batch_stride or self.batch_stride,
+            stride=batch_stride,
             return_overflowing_tokens=True,
             return_tensors="pt",
         )
@@ -407,8 +407,7 @@ class Summarizer:
 
         sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
         scores_text = "\n".join(sum_scores)
-        full_summary = "\n\t".join(sum_text)
-
+        full_summary = "\n".join(sum_text)
         if return_string:
             return full_summary
 
