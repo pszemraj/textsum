@@ -110,6 +110,7 @@ def main(
         **params,
     )
     summarizer.print_config()
+    logging.info(summarizer.config)
     # get the input files
     input_files = list(Path(input_dir).glob(f"*.{file_extension}"))
     logging.info(f"found {len(input_files)} input files")
