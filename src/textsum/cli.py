@@ -68,7 +68,8 @@ def get_parser():
     parser.add_argument(
         "--force_cache",
         action="store_true",
-        dest="force the use_cache flag to True in the Summarizer",
+        dest="force_cache",
+        help="force the use_cache flag to True in the Summarizer",
     )
     parser.add_argument(
         "-8bit",
