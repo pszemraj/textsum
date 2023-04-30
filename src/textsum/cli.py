@@ -137,6 +137,10 @@ def main(
             logging.error(e)
             print(e)
             failed_files.append(f)
+            if isinstance(e, RuntimeError):
+                # if a runtime error occurs, exit
+                logging.error("exiting due to runtime error")
+                break
 
     logging.info(f"failed to summarize {len(failed_files)} files")
     if len(failed_files) > 0:
