@@ -87,7 +87,6 @@ class Summarizer:
                 device_map="auto",
             )
         elif optimum_onnx:
-            self.logger.info("Loading model in ONNX Runtime LOCAL")
             from optimum.onnxruntime import ORTModelForSeq2SeqLM
             import onnxruntime
 
