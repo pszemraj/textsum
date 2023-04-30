@@ -123,6 +123,7 @@ def main(
     output_dir.mkdir(exist_ok=True, parents=True)
 
     failed_files = []
+    completed_files = []
     for f in tqdm(input_files, desc="summarizing files"):
         _prospective_output_file = output_dir / f"{f.stem}_summary.txt"
         if skip_completed and _prospective_output_file.exists():
@@ -132,14 +133,16 @@ def main(
             _ = summarizer.summarize_file(
                 file_path=f, output_dir=output_dir, lowercase=lowercase
             )
+            completed_files.append(str(f))
         except Exception as e:
             logging.error(f"failed to summarize file:\t{f}")
             logging.error(e)
             print(e)
             failed_files.append(f)
             if isinstance(e, RuntimeError):
-                # if a runtime error occurs, exit
-                logging.error("exiting due to runtime error")
+                # if a runtime error occurs, exit immediately
+                logging.error("Not continuing summarization due to runtime error")
+                failed_files.extend(input_files[input_files.index(f) + 1 :])
                 break
 
     logging.info(f"failed to summarize {len(failed_files)} files")
