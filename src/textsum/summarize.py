@@ -63,6 +63,7 @@ class Summarizer:
         :param float max_length_ratio: the ratio of the token_batch_length to use as the max_length for the model, defaults to 0.25
         :param bool load_in_8bit: whether to load the model in 8bit precision (LLM.int8), defaults to False
         :param bool compile_model: whether to compile the model (pytorch 2.0+ only), defaults to False
+        :param bool optimum_onnx: whether to load the model in ONNX Runtime, defaults to False
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
