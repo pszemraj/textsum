@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 import warnings
+import pprint as pp
 from pathlib import Path
 
 import torch
@@ -134,7 +135,10 @@ class Summarizer:
 
         if force_cache:
             self.logger.info("Forcing use_cache to True")
-            self.model.config_use_cache = True
+            self.model.config.use_cache = True
+            self.logger.debug(
+                f"model.config.use_cache: {pp.pformat(self.model.config.to_dict())}"
+            )
 
         # set batch processing parameters
         self.token_batch_length = token_batch_length
