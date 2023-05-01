@@ -433,8 +433,8 @@ class Summarizer:
                 encoding="utf-8",
                 errors="ignore",
             ) as fo:
-                fo.write("\n" * 3)
-                fo.write(f"\n\nSection Scores for {target_file.stem}:\n")
+                fo.write("\n" * 2 + "---\n\n")
+                fo.write(f"Section Scores for {target_file.stem}:\n")
                 fo.writelines(scores_text)
                 fo.write("\n\n---\n")
 
