@@ -19,7 +19,7 @@
 
 <br>
 
-> utility for using transformers summarization models on text docs
+> a utility for using transformers summarization models on text docs 🖇
 
 This package provides easy-to-use interfaces for using summarization models on text documents of arbitrary length. Currently implemented interfaces include a python API, CLI, and a shareable demo app.
 
@@ -28,7 +28,7 @@ For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/
 ---
 
 - [textsum](#textsum)
-  - [Quick Start Guide](#quick-start-guide)
+  - [🔦 Quick Start Guide](#-quick-start-guide)
   - [Installation](#installation)
     - [Full Installation](#full-installation)
     - [Additional Details](#additional-details)
@@ -48,7 +48,7 @@ For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/
 
 ---
 
-## Quick Start Guide
+## 🔦 Quick Start Guide
 
 1. Install the package with pip:
 
@@ -232,6 +232,8 @@ If using the python API, it's better to initiate tf32 yourself; see [here](https
 Here are some suggestions for additions to the README in order to reflect the latest changes in the `__init__` method of your `Summarizer` class:
 
 ### Using Optimum ONNX Runtime
+
+> ⚠️ **Note:** This feature is experimental and might not work as expected. Use at your own risk. ⚠️🧪
 
 ONNX Runtime is a performance-focused inference engine for ONNX models. It can be used to enhance the speed of model predictions, especially on Windows and in environments where GPU acceleration is not available. If you want to use ONNX runtime for inference, you need to set `optimum_onnx=True` when initializing the `Summarizer` class.
 
