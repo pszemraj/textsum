@@ -149,19 +149,39 @@ textsum-dir /path/to/dir
 
 A full list:
 
-```shell
-Usage: textsum-dir INPUT_DIR <flags>
-  optional flags:        --output_dir | --model | --no_cuda | --tf32 |
-                         --force_cache | --load_in_8bit | --compile |
-                         --optimum_onnx | --batch_length | --batch_stride |
-                         --num_beams | --length_penalty |
-                         --repetition_penalty | --max_length_ratio |
-                         --min_length | --encoder_no_repeat_ngram_size |
-                         --no_repeat_ngram_size | --early_stopping |
-                         --shuffle | --lowercase | --loglevel | --logfile |
-                         --file_extension | --skip_completed
 
-```
+<details>
+  <summary>Click to expand table</summary>
+
+  | Flag                             | Description                              |
+  | -------------------------------- | ---------------------------------------- |
+  | `--output_dir`                   | Specify the output directory             |
+  | `--model`                        | Specify the model to use                 |
+  | `--no_cuda`                      | Disable CUDA                             |
+  | `--tf32`                         | Use TF32 precision                       |
+  | `--force_cache`                  | Force cache usage                        |
+  | `--load_in_8bit`                 | Load in 8-bit mode                       |
+  | `--compile`                      | Compile the model                        |
+  | `--optimum_onnx`                 | Use optimum ONNX                         |
+  | `--batch_length`                 | Specify the batch length                 |
+  | `--batch_stride`                 | Specify the batch stride                 |
+  | `--num_beams`                    | Specify the number of beams              |
+  | `--length_penalty`               | Specify the length penalty               |
+  | `--repetition_penalty`           | Specify the repetition penalty           |
+  | `--max_length_ratio`             | Specify the maximum length ratio         |
+  | `--min_length`                   | Specify the minimum length               |
+  | `--encoder_no_repeat_ngram_size` | Specify the encoder no repeat ngram size |
+  | `--no_repeat_ngram_size`         | Specify the no repeat ngram size         |
+  | `--early_stopping`               | Enable early stopping                    |
+  | `--shuffle`                      | Shuffle the input data                   |
+  | `--lowercase`                    | Convert input to lowercase               |
+  | `--loglevel`                     | Specify the log level                    |
+  | `--logfile`                      | Specify the log file                     |
+  | `--file_extension`               | Specify the file extension               |
+  | `--skip_completed`               | Skip completed files                     |
+
+</details>
+
 
 Some useful options are:
 
