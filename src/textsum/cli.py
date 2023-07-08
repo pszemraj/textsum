@@ -1,268 +1,166 @@
 """
-cli.py - a module containing functions for the command line interface (to run the summarization on a directory of files)
+cli.py - Command line interface for textsum.
 
-usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [--no_cuda] [--tf32] [-8bit]
-                   [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
-                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY]
-                   [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
-                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE]
-                   [--no_early_stopping] [--shuffle] [--lowercase] [-v] [-vv] [-lf LOGFILE]
-                   input_dir
-
-Summarize text files in a directory
-
-positional arguments:
-  input_dir             the directory containing the input files
-
+Usage:
+    textsum-dir --help
 """
-import argparse
 import logging
 import pprint as pp
 import random
-import sys
 from pathlib import Path
+from typing import Optional
 
+import fire
 from tqdm.auto import tqdm
 
+import textsum
 from textsum.summarize import Summarizer
 from textsum.utils import enable_tf32, setup_logging
 
 
-def get_parser():
+def main(
+    input_dir: str,
+    output_dir: Optional[str] = None,
+    model: str = "pszemraj/long-t5-tglobal-base-16384-book-summary",
+    no_cuda: bool = False,
+    tf32: bool = False,
+    force_cache: bool = False,
+    load_in_8bit: bool = False,
+    compile: bool = False,
+    optimum_onnx: bool = False,
+    batch_length: int = 4096,
+    batch_stride: int = 16,
+    num_beams: int = 4,
+    length_penalty: float = 0.8,
+    repetition_penalty: float = 2.5,
+    max_length_ratio: float = 0.25,
+    min_length: int = 8,
+    encoder_no_repeat_ngram_size: int = 4,
+    no_repeat_ngram_size: int = 3,
+    early_stopping: bool = True,
+    shuffle: bool = False,
+    lowercase: bool = False,
+    loglevel: Optional[int] = 30,
+    logfile: Optional[str] = None,
+    file_extension: str = "txt",
+    skip_completed: bool = False,
+):
     """
-    get_parser - a function that returns an argument parser for the sum_files script
+    Main function to summarize text files in a directory.
 
-    :return argparse.ArgumentParser: the argument parser
+    Args:
+        input_dir (str, required): The directory containing the input files.
+        output_dir (str, optional): Directory to write the output files. If None, writes to input_dir/summarized.
+        model (str, optional): The name of the model to use for summarization. Default: "pszemraj/long-t5-tglobal-base-16384-book-summary".
+        no_cuda (bool, optional): Flag to not use cuda if available. Default: False.
+        tf32 (bool, optional): Enable tf32 data type for computation (requires ampere series GPU or newer). Default: False.
+        force_cache (bool, optional): Force the use_cache flag to True in the Summarizer. Default: False.
+        load_in_8bit (bool, optional): Flag to load the model in 8 bit precision (requires bitsandbytes). Default: False.
+        compile (bool, optional): Compile the model for inference (requires torch 2.0+). Default: False.
+        optimum_onnx (bool, optional): Optimize the model for inference (requires onnxruntime-tools). Default: False.
+        batch_length (int, optional): The length of each batch. Default: 4096.
+        batch_stride (int, optional): The stride of each batch. Default: 16.
+        num_beams (int, optional): The number of beams to use for beam search. Default: 4.
+        length_penalty (float, optional): The length penalty to use for decoding. Default: 0.8.
+        repetition_penalty (float, optional): The repetition penalty to use for beam search. Default: 2.5.
+        max_length_ratio (float, optional): The maximum length of the summary as a ratio of the batch length. Default: 0.25.
+        min_length (int, optional): The minimum length of the summary. Default: 8.
+        encoder_no_repeat_ngram_size (int, optional): Encoder no repeat ngram size (input text). Smaller values mean more unique summaries. Default: 4.
+        no_repeat_ngram_size (int, optional): The decoder no repeat ngram size (output text). Default: 3.
+        early_stopping (bool, optional): Whether to use early stopping. Default: True.
+        shuffle (bool, optional): Shuffle the input files before summarizing. Default: False.
+        lowercase (bool, optional): Whether to lowercase the input text. Default: False.
+        loglevel (int, optional): The log level to use (default: 20 - INFO). Default: 30.
+        logfile (str, optional): Path to the log file. This will set loglevel to INFO (if not set) and write to the file.
+        file_extension (str, optional): The file extension to use when searching for input files.,  defaults to "txt"
+        skip_completed (bool, optional): Skip files that have already been summarized. Default: False.
+
+    Returns:
+        None
     """
-    parser = argparse.ArgumentParser(
-        description="Summarize text files in a directory",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    parser.add_argument(
-        "-o",
-        "--output_dir",
-        type=str,
-        default=None,
-        dest="output_dir",
-        help="directory to write the output files (if None, writes to input_dir/summarized)",
-    )
-    parser.add_argument(
-        "-m",
-        "--model_name",
-        type=str,
-        default="pszemraj/long-t5-tglobal-base-16384-book-summary",
-        help="the name of the model to use for summarization",
-    )
-    parser.add_argument(
-        "--no_cuda",
-        action="store_true",
-        help="flag to not use cuda if available",
-    )
-    parser.add_argument(
-        "--tf32",
-        action="store_true",
-        dest="tf32",
-        help="enable tf32 data type for computation (requires ampere series GPU or newer)",
-    )
-    parser.add_argument(
-        "-8bit",
-        "--load_in_8bit",
-        action="store_true",
-        dest="load_in_8bit",
-        help="flag to load the model in 8 bit precision (requires bitsandbytes)",
-    )
-    parser.add_argument(
-        "-batch",
-        "--batch_length",
-        dest="batch_length",
-        type=int,
-        default=4096,
-        help="the length of each batch",
-    )
-    parser.add_argument(
-        "-stride",
-        "--batch_stride",
-        type=int,
-        default=16,
-        help="the stride of each batch",
-    )
-    parser.add_argument(
-        "-nb",
-        "--num_beams",
-        type=int,
-        default=4,
-        help="the number of beams to use for beam search",
-    )
-    parser.add_argument(
-        "-l2",
-        "--length_penalty",
-        type=float,
-        default=0.8,
-        help="the length penalty to use for decoding",
-    )
-    parser.add_argument(
-        "-r2",
-        "--repetition_penalty",
-        type=float,
-        default=2.5,
-        help="the repetition penalty to use for beam search",
-    )
-    parser.add_argument(
-        "-length_ratio",
-        "--max_length_ratio",
-        dest="max_length_ratio",
-        type=int,
-        default=0.25,
-        help="the maximum length of the summary as a ratio of the batch length",
-    )
-    parser.add_argument(
-        "-ml",
-        "--min_length",
-        type=int,
-        default=8,
-        help="the minimum length of the summary",
-    )
-    parser.add_argument(
-        "-enc_ngram",
-        "--encoder_no_repeat_ngram_size",
-        type=int,
-        default=4,
-        dest="encoder_no_repeat_ngram_size",
-        help="encoder no repeat ngram size (input text). smaller values mean more unique summaries",
-    )
-    parser.add_argument(
-        "-dec_ngram",
-        "--no_repeat_ngram_size",
-        type=int,
-        default=3,
-        dest="no_repeat_ngram_size",
-        help="the decoder no repeat ngram size (output text)",
-    )
-    parser.add_argument(
-        "--no_early_stopping",
-        action="store_false",
-        dest="early_stopping",
-        help="whether to use early stopping. this disables the early_stopping value",
-    )
-    parser.add_argument(
-        "--shuffle",
-        action="store_true",
-        help="shuffle the input files before summarizing",
-    )
-    parser.add_argument(
-        "--lowercase",
-        action="store_true",
-        help="whether to lowercase the input text",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        dest="loglevel",
-        help="set loglevel to INFO",
-        action="store_const",
-        const=logging.INFO,
-    )
-    parser.add_argument(
-        "-vv",
-        "--very_verbose",
-        dest="loglevel",
-        help="set loglevel to DEBUG",
-        action="store_const",
-        const=logging.DEBUG,
-    )
-    parser.add_argument(
-        "-lf",
-        "--log_file",
-        dest="logfile",
-        type=str,
-        default=None,
-        help="path to the log file. this will set loglevel to INFO (if not set) and write to the file",
-    )
-    parser.add_argument(
-        "input_dir",
-        type=str,
-        help="the directory containing the input files",
-    )
-
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)  # no args, print help
-        sys.exit(1)
-
-    return parser
-
-
-def main(args):
-    """
-    main - the main function for the script
-
-    :param argparse.Namespace args: the arguments for the script
-    """
-    setup_logging(args.loglevel, args.logfile)
-    logging.info("starting summarization")
-    logging.info(f"args: {pp.pformat(args)}")
+    setup_logging(loglevel, logfile)
+    logging.info("starting textsum cli")
+    logging.info(f"textsum version:\t{textsum.__version__}")
 
     params = {
-        "min_length": args.min_length,
-        "encoder_no_repeat_ngram_size": args.encoder_no_repeat_ngram_size,
-        "no_repeat_ngram_size": args.no_repeat_ngram_size,
-        "repetition_penalty": args.repetition_penalty,
-        "num_beams": args.num_beams,
+        "min_length": min_length,
+        "encoder_no_repeat_ngram_size": encoder_no_repeat_ngram_size,
+        "no_repeat_ngram_size": no_repeat_ngram_size,
+        "repetition_penalty": repetition_penalty,
+        "num_beams": num_beams,
         "num_beam_groups": 1,
-        "length_penalty": args.length_penalty,
-        "early_stopping": args.early_stopping,
+        "length_penalty": length_penalty,
+        "early_stopping": early_stopping,
         "do_sample": False,
     }
 
-    if args.tf32:
+    if tf32:
         enable_tf32()  # enable tf32 for computation
 
     summarizer = Summarizer(
-        model_name_or_path=args.model_name,
-        use_cuda=not args.no_cuda,
-        token_batch_length=args.batch_length,
-        batch_stride=args.batch_stride,
-        max_length_ratio=args.max_length_ratio,
-        load_in_8bit=args.load_in_8bit,
+        model_name_or_path=model,
+        use_cuda=not no_cuda,
+        token_batch_length=batch_length,
+        batch_stride=batch_stride,
+        max_length_ratio=max_length_ratio,
+        load_in_8bit=load_in_8bit,
+        compile_model=compile,
+        optimum_onnx=optimum_onnx,
+        force_cache=force_cache,
         **params,
     )
-
+    summarizer.print_config()
+    logging.info(summarizer.config)
     # get the input files
-    input_files = list(Path(args.input_dir).glob("*.txt"))
+    input_files = list(Path(input_dir).glob(f"*.{file_extension}"))
     logging.info(f"found {len(input_files)} input files")
 
-    if args.shuffle:
+    if shuffle:
         logging.info("shuffling input files")
         random.SystemRandom().shuffle(input_files)
 
     # get the output directory
-    output_dir = (
-        Path(args.output_dir)
-        if args.output_dir
-        else Path(args.input_dir) / "summarized"
-    )
+    output_dir = Path(output_dir) if output_dir else Path(input_dir) / "summarized"
     output_dir.mkdir(exist_ok=True, parents=True)
 
-    # get the batches
-    for f in tqdm(input_files):
+    failed_files = []
+    completed_files = []
+    for f in tqdm(input_files, desc="summarizing files"):
+        _prospective_output_file = output_dir / f"{f.stem}_summary.txt"
+        if skip_completed and _prospective_output_file.exists():
+            logging.info(f"skipping file (found existing summary):\t{str(f)}")
+            continue
+        try:
+            _ = summarizer.summarize_file(
+                file_path=f, output_dir=output_dir, lowercase=lowercase
+            )
+            completed_files.append(str(f))
+        except Exception as e:
+            logging.error(f"failed to summarize file:\t{f}")
+            logging.error(e)
+            print(e)
+            failed_files.append(f)
+            if isinstance(e, RuntimeError):
+                # if a runtime error occurs, exit immediately
+                logging.error("Not continuing summarization due to runtime error")
+                failed_files.extend(input_files[input_files.index(f) + 1 :])
+                break
 
-        _ = summarizer.summarize_file(
-            file_path=f, output_dir=output_dir, lowercase=args.lowercase
-        )
+    logging.info(f"failed to summarize {len(failed_files)} files")
+    if len(failed_files) > 0:
+        logging.info(f"failed files:\n\t{pp.pformat(failed_files)}")
 
-    logging.info(f"finished summarization loop - output dir: {output_dir.resolve()}")
-    summarizer.save_params(output_path=output_dir, hf_tag=args.model_name)
-    logging.info("finished summarizing files")
+    logging.debug("saving summarizer params and config")
+    summarizer.save_params(output_path=output_dir, hf_tag=model)
+    summarizer.save_config(output_dir / "textsum_config.json")
+    logging.info(
+        f"finished summarizing files - output dir:\n\t{str(output_dir.resolve())}"
+    )
 
 
 def run():
-    """
-    run - main entry point for the script
-    """
-
-    parser = get_parser()
-    args = parser.parse_args()
-    main(args)
+    """Entry point for console_scripts"""
+    fire.Fire(main)
 
 
 if __name__ == "__main__":

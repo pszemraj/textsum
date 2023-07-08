@@ -75,6 +75,14 @@ def check_GPU(verbose=False):
     return bool("A100" in gpu_name)
 
 
+def validate_pytorch2(torch_version: str = None):
+    torch_version = torch.__version__ if torch_version is None else torch_version
+
+    pattern = r"^2\.\d+(\.\d+)*"
+
+    return True if re.match(pattern, torch_version) else False
+
+
 def cstr(s, color="black"):
     """styles a string with a color"""
     return "<text style=color:{}>{}</text>".format(color, s)
@@ -153,23 +161,32 @@ def setup_logging(loglevel, logfile=None) -> None:
         for handler in root.handlers:
             root.removeHandler(handler)
 
-    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
+    log_format = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
+    debug_format = (
+        "%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)d - %(message)s"
+    )
     if logfile is None:
         logging.basicConfig(
             level=loglevel,
             stream=sys.stdout,
-            format=logformat,
+            format=log_format,
             datefmt="%Y-%m-%d %H:%M:%S",
         )
     else:
+        logfile = Path(logfile)
         loglevel = (
-            logging.INFO if not loglevel in [logging.DEBUG, logging.INFO] else loglevel
+            logging.INFO
+            if not loglevel in [logging.DEBUG, logging.INFO, logging.WARNING]
+            else loglevel
         )
+        if loglevel == logging.DEBUG:
+            logfile.unlink(missing_ok=True)
+
         logging.basicConfig(
             level=loglevel,
             filename=logfile,
             filemode="w",
-            format=logformat,
+            format=debug_format if loglevel == logging.DEBUG else log_format,
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
@@ -192,9 +209,8 @@ def postprocess_booksummary(text: str, custom_phrases: list = None) -> str:
     if custom_phrases is not None:
         REMOVAL_PHRASES.extend(custom_phrases)
     for pr in REMOVAL_PHRASES:
-
         text = text.replace(pr, "")
-    return text
+    return text.strip()
 
 
 def check_bitsandbytes_available():

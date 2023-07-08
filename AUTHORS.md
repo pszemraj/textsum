@@ -1,3 +1,3 @@
 # Contributors
 
-* peter szemraj [peterszemraj@gmail.com](mailto:peterszemraj@gmail.com)
+* peter szemraj | [contact](https://peterszemraj.ch/)

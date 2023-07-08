@@ -3,7 +3,9 @@ summarize.py - a module that contains functions for summarizing text
 """
 import json
 import logging
+import sys
 import warnings
+import pprint as pp
 from pathlib import Path
 
 import torch
@@ -11,17 +13,32 @@ from cleantext import clean
 from tqdm.auto import tqdm
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
+import textsum
 from textsum.utils import (
     check_bitsandbytes_available,
     get_timestamp,
     postprocess_booksummary,
+    validate_pytorch2,
 )
 
 
 class Summarizer:
     """
-    Summarizer - a class that contains functions for summarizing text with a transformers model
+    Summarizer - utility class for summarizing long text using a pretrained model
     """
+
+    settable_inference_params = [
+        "min_length",
+        "max_length",
+        "no_repeat_ngram_size",
+        "encoder_no_repeat_ngram_size",
+        "repetition_penalty",
+        "num_beams",
+        "num_beam_groups",
+        "length_penalty",
+        "early_stopping",
+        "do_sample",
+    ]  # list of inference parameters that can be set
 
     def __init__(
         self,
@@ -31,7 +48,10 @@ class Summarizer:
         token_batch_length: int = 2048,
         batch_stride: int = 16,
         max_length_ratio: float = 0.25,
-        load_in_8bit=False,
+        load_in_8bit: bool = False,
+        compile_model: bool = False,
+        optimum_onnx: bool = False,
+        force_cache: bool = False,
         **kwargs,
     ):
         """
@@ -44,6 +64,9 @@ class Summarizer:
         :param int batch_stride: the amount of tokens to stride the batch by, defaults to 16
         :param float max_length_ratio: the ratio of the token_batch_length to use as the max_length for the model, defaults to 0.25
         :param bool load_in_8bit: whether to load the model in 8bit precision (LLM.int8), defaults to False
+        :param bool compile_model: whether to compile the model (pytorch 2.0+ only), defaults to False
+        :param bool optimum_onnx: whether to load the model in ONNX Runtime, defaults to False
+        :param bool force_cache: whether to force the model to use cache, defaults to False
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
@@ -64,10 +87,44 @@ class Summarizer:
                 load_in_8bit=load_in_8bit,
                 device_map="auto",
             )
+        elif optimum_onnx:
+            from optimum.onnxruntime import ORTModelForSeq2SeqLM
+            import onnxruntime
+
+            if self.device == "cuda":
+                self.logger.warning(
+                    "ONNX runtime+cuda needs an additional package. manually install onnxruntime-gpu"
+                )
+            provider = (
+                "CUDAExecutionProvider"
+                if "GPU" in onnxruntime.get_device() and self.device == "cuda"
+                else "CPUExecutionProvider"
+            )
+            self.logger.info(f"Loading model in ONNX Runtime to provider:\t{provider}")
+            self.model = ORTModelForSeq2SeqLM.from_pretrained(
+                self.model_name_or_path,
+                provider=provider,
+                export=not Path(self.model_name_or_path).is_dir(),
+            )  # if a directory, already exported
         else:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 self.model_name_or_path,
             ).to(self.device)
+            # device_map="auto" is not added for all models
+
+        if compile_model:
+            if validate_pytorch2() and sys.platform != "win32":
+                self.logger.info("Compiling model")
+                self.model = torch.compile(self.model)
+            else:
+                self.logger.warning(
+                    "Unable to compile model. Please upgrade to PyTorch 2.0 and run on a non-Windows platform"
+                )
+        else:
+            self.logger.debug("Not compiling model")
+
+        if not optimum_onnx:
+            self.model = self.model.eval()
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
         self.is_general_attention_model = (
@@ -76,23 +133,18 @@ class Summarizer:
 
         self.logger.info(f"Loaded model {model_name_or_path} to {self.device}")
 
+        if force_cache:
+            self.logger.info("Forcing use_cache to True")
+            self.model.config.use_cache = True
+            self.logger.debug(
+                f"model.config.use_cache: {pp.pformat(self.model.config.to_dict())}"
+            )
+
         # set batch processing parameters
         self.token_batch_length = token_batch_length
         self.batch_stride = batch_stride
         self.max_len_ratio = max_length_ratio
 
-        self.settable_inference_params = [
-            "min_length",
-            "max_length",
-            "no_repeat_ngram_size",
-            "encoder_no_repeat_ngram_size",
-            "repetition_penalty",
-            "num_beams",
-            "num_beam_groups",
-            "length_penalty",
-            "early_stopping",
-            "do_sample",
-        ]  # list of inference parameters that can be set
         self.inference_params = {
             "min_length": 8,
             "max_length": int(token_batch_length * max_length_ratio),
@@ -114,11 +166,28 @@ class Summarizer:
                     f"{key} is not a supported inference parameter, ignoring"
                 )
 
+        self.config = {
+            "model_name_or_path": model_name_or_path,
+            "use_cuda": use_cuda,
+            # "is_general_attention_model": is_general_attention_model, # TODO: validate later
+            "token_batch_length": token_batch_length,
+            "batch_stride": batch_stride,
+            "max_length_ratio": max_length_ratio,
+            "load_in_8bit": load_in_8bit,
+            "compile_model": compile_model,
+            "optimum_onnx": optimum_onnx,
+            "device": self.device,
+            "inference_params": self.inference_params,
+            "textsum_version": textsum.__version__,
+        }
+
+    def __repr__(self):
+        return f"Summarizer(model_name_or_path={self.model_name_or_path}, use_cuda={self.use_cuda}, token_batch_length={self.token_batch_length}, batch_stride={self.batch_stride}, max_length_ratio={self.max_length_ratio}, load_in_8bit={self.load_in_8bit}, compile_model={self.compile_model}, optimum_onnx={self.optimum_onnx})"
+
     def set_inference_params(
         self,
         new_params: dict = None,
         config_file: str or Path = None,
-        config_metadata_id: str = "META_",
     ):
         """
         set_inference_params - update the inference parameters to use when summarizing text
@@ -136,7 +205,7 @@ class Summarizer:
         new_params = new_params or {}
         # load from config file if provided
         if config_file:
-            with open(config_file, "r") as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 config_params = json.load(f)
             config_params = {
                 k: v
@@ -158,6 +227,15 @@ class Summarizer:
     def get_inference_params(self):
         """get the inference parameters currently being used"""
         return self.inference_params
+
+    def print_config(self):
+        """print the current configuration"""
+        print(json.dumps(self.config, indent=2))
+
+    def save_config(self, path: str or Path = "textsum_config.json"):
+        """save the current configuration to a json file"""
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.config, f, indent=2)
 
     def update_loglevel(self, loglevel: int = logging.INFO):
         """update the loglevel of the logger"""
@@ -218,6 +296,8 @@ class Summarizer:
         input_text: str,
         batch_length: int = None,
         batch_stride: int = None,
+        min_batch_length: int = 512,
+        pad_incomplete_batch: bool = True,
         **kwargs,
     ):
         """
@@ -226,15 +306,18 @@ class Summarizer:
         :param str input_text: the text to summarize
         :param int batch_length: number of tokens to include in each input batch, default None (self.token_batch_length)
         :param int batch_stride: number of tokens to stride between batches, default None (self.token_batch_stride)
+        :param bool pad_incomplete_batch: whether to pad the last batch to the length of the longest batch, default True
         :return: a list of summaries, a list of scores, and a list of the input text for each batch
         """
 
-        # log all input parameters
-        if batch_length and batch_length < 512:
+        batch_length = self.token_batch_length if batch_length is None else batch_length
+        batch_stride = self.batch_stride if batch_stride is None else batch_stride
+
+        if batch_length < min_batch_length:
             self.logger.warning(
-                "WARNING: entered batch_length was too low at {batch_length}, resetting to 512"
+                f"batch_length must be at least {min_batch_length}. Setting batch_length to {min_batch_length}"
             )
-            batch_length = 512
+            batch_length = min_batch_length
 
         self.logger.debug(
             f"batch_length: {batch_length} batch_stride: {batch_stride}, kwargs: {kwargs}"
@@ -249,10 +332,9 @@ class Summarizer:
             input_text,
             padding="max_length",
             truncation=True,
-            max_length=batch_length or self.token_batch_length,
-            stride=batch_stride or self.batch_stride,
+            max_length=batch_length,
+            stride=batch_stride,
             return_overflowing_tokens=True,
-            add_special_tokens=False,
             return_tensors="pt",
         )
         in_id_arr, att_arr = encoded_input.input_ids, encoded_input.attention_mask
@@ -261,6 +343,15 @@ class Summarizer:
         pbar = tqdm(total=len(in_id_arr), desc="Generating Summaries")
 
         for _id, _mask in zip(in_id_arr, att_arr):
+            # If the batch is smaller than batch_length, pad it with the model's pad token
+            if len(_id) < batch_length and pad_incomplete_batch:
+                self.logger.debug(
+                    f"padding batch of length {len(_id)} to {batch_length}"
+                )
+                pad_token = self.tokenizer.pad_token_id
+                difference = batch_length - len(_id)
+                _id = torch.cat([_id, torch.tensor([pad_token] * difference)])
+                _mask = torch.cat([_mask, torch.tensor([0] * difference)])
 
             result, score = self.summarize_and_score(
                 ids=_id,
@@ -319,8 +410,7 @@ class Summarizer:
 
         sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
         scores_text = "\n".join(sum_scores)
-        full_summary = "\n\t".join(sum_text)
-
+        full_summary = "\n".join(sum_text)
         if return_string:
             return full_summary
 
@@ -337,7 +427,6 @@ class Summarizer:
             encoding="utf-8",
             errors="ignore",
         ) as fo:
-
             fo.writelines(full_summary)
 
         if save_scores:
@@ -347,9 +436,8 @@ class Summarizer:
                 encoding="utf-8",
                 errors="ignore",
             ) as fo:
-
-                fo.write("\n" * 3)
-                fo.write(f"\n\nSection Scores for {target_file.stem}:\n")
+                fo.write("\n" * 2 + "---\n\n")
+                fo.write(f"Section Scores for {target_file.stem}:\n")
                 fo.writelines(scores_text)
                 fo.write("\n\n---\n")
 
@@ -458,14 +546,18 @@ class Summarizer:
         )  # if output_path is a file, use that, otherwise use the default name
 
         exported_params = self.get_inference_params().copy()
-        exported_params["META_huggingface_model"] = (
-            self.model_name_or_path if hf_tag is None else hf_tag
-        )
-        exported_params["META_date"] = get_timestamp()
+        metadata = {
+            "META_huggingface_model": (
+                self.model_name_or_path if hf_tag is None else hf_tag
+            ),
+            "META_date": get_timestamp(),
+            "META_textsum_version": textsum.__version__,
+        }
+        exported_params["METADATA"] = metadata
 
         self.logger.info(f"Saving parameters to {metadata_path}")
         with open(metadata_path, "w") as write_file:
-            json.dump(exported_params, write_file, indent=4)
+            json.dump(exported_params, write_file, indent=2)
 
         logging.debug(f"Saved parameters to {metadata_path}")
         if verbose:

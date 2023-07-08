@@ -19,7 +19,7 @@
 
 <br>
 
-> utility for using transformers summarization models on text docs
+> a utility for using transformers summarization models on text docs 🖇
 
 This package provides easy-to-use interfaces for using summarization models on text documents of arbitrary length. Currently implemented interfaces include a python API, CLI, and a shareable demo app.
 
@@ -28,36 +28,64 @@ For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/
 ---
 
 - [textsum](#textsum)
+  - [🔦 Quick Start Guide](#-quick-start-guide)
   - [Installation](#installation)
     - [Full Installation](#full-installation)
-    - [Additional Details](#additional-details)
+    - [Extra Features](#extra-features)
   - [Usage](#usage)
     - [Python API](#python-api)
     - [CLI](#cli)
     - [Demo App](#demo-app)
-  - [Using Big Models](#using-big-models)
-    - [Reducing Memory Usage](#reducing-memory-usage)
-      - [EFficient Inference](#efficient-inference)
-      - [Parameters](#parameters)
+  - [Models](#models)
+  - [Advanced Configuration](#advanced-configuration)
+    - [Parameters](#parameters)
+    - [8-bit Quantization \& TensorFloat32](#8-bit-quantization--tensorfloat32)
+    - [Using Optimum ONNX Runtime](#using-optimum-onnx-runtime)
+    - [Force Cache](#force-cache)
+    - [Compile Model](#compile-model)
   - [Contributing](#contributing)
-  - [Roadmap](#roadmap)
+  - [Road Map](#road-map)
+
+---
+
+## 🔦 Quick Start Guide
+
+1. Install the package with pip:
+
+```bash
+pip install textsum
+```
+
+2. Import the package and create a summarizer:
+
+```python
+from textsum.summarize import Summarizer
+summarizer = Summarizer() # loads default model and parameters
+```
+
+3. Summarize a text string:
+
+```python
+text = "This is a long string of text that will be summarized."
+summary = summarizer.summarize_string(text)
+print(f'Summary: {summary}')
+```
 
 ---
 
 ## Installation
 
-Install using pip:
+Install using pip with Python 3.8 or later (_after creating a virtual environment_):
 
 ```bash
-# create a virtual environment (optional)
 pip install textsum
 ```
 
-The `textsum` package is now installed in your virtual environment. CLI commands/python API can summarize text docs from anywhere. see the [Usage](#usage) section for more details.
+The `textsum` package is now installed in your virtual environment. [CLI commands](#cli) are available in your terminal, and the [python API](#python-api) is available in your python environment.
 
 ### Full Installation
 
-To install all the dependencies _(includes PDF OCR, gradio UI demo, optimum, etc)_, run:
+For a full installation, which includes additional features such as PDF OCR, Gradio UI demo, and Optimum, run the following commands:
 
 ```bash
 git clone https://github.com/pszemraj/textsum.git
@@ -66,15 +94,19 @@ cd textsum
 pip install -e .[all]
 ```
 
-### Additional Details
+### Extra Features
 
-This package uses the [clean-text](https://github.com/jfilter/clean-text) python package, and like the "base" version of the package, **does not** include the GPL-licensed `unidecode` dependency. If you want to use the `unidecode` package, install the package as an extra with `pip`:
+The package also supports a number of optional extra features, which can be installed as follows:
 
-```bash
-pip install textsum[unidecode]
-```
+- `8bit`: Install with `pip install -e .[8bit]`
+- `optimum`: Install with `pip install -e .[optimum]`
+- `PDF`: Install with `pip install -e .[PDF]`
+- `app`: Install with `pip install -e .[app]`
+- `unidecode`: Install with `pip install -e .[unidecode]`
 
-In practice, text cleaning pre-summarization with/without `unidecode` should not make a significant difference.
+Read below for more details on how to use these features.
+
+> _Note:_ The `unidecode` extra is a GPL-licensed dependency that is not included by default with the `clean-text` python package. While it can be used for text cleaning pre-summarization, it generally should not make a significant difference in most use cases.
 
 ## Usage
 
@@ -115,17 +147,52 @@ To summarize a directory of text files, run the following command:
 textsum-dir /path/to/dir
 ```
 
-The following options are available:
+A full list:
 
-```bash
-usage: textsum-dir [-h] [-o OUTPUT_DIR] [-m MODEL_NAME] [--no_cuda] [--tf32] [-8bit]
-                   [-batch BATCH_LENGTH] [-stride BATCH_STRIDE] [-nb NUM_BEAMS]
-                   [-l2 LENGTH_PENALTY] [-r2 REPETITION_PENALTY]
-                   [-length_ratio MAX_LENGTH_RATIO] [-ml MIN_LENGTH]
-                   [-enc_ngram ENCODER_NO_REPEAT_NGRAM_SIZE] [-dec_ngram NO_REPEAT_NGRAM_SIZE]
-                   [--no_early_stopping] [--shuffle] [--lowercase] [-v] [-vv] [-lf LOGFILE]
-                   input_dir
-```
+
+<details>
+  <summary>Click to expand table</summary>
+
+  | Flag                             | Description                              |
+  | -------------------------------- | ---------------------------------------- |
+  | `--output_dir`                   | Specify the output directory             |
+  | `--model`                        | Specify the model to use                 |
+  | `--no_cuda`                      | Disable CUDA                             |
+  | `--tf32`                         | Use TF32 precision                       |
+  | `--force_cache`                  | Force cache usage                        |
+  | `--load_in_8bit`                 | Load in 8-bit mode                       |
+  | `--compile`                      | Compile the model                        |
+  | `--optimum_onnx`                 | Use optimum ONNX                         |
+  | `--batch_length`                 | Specify the batch length                 |
+  | `--batch_stride`                 | Specify the batch stride                 |
+  | `--num_beams`                    | Specify the number of beams              |
+  | `--length_penalty`               | Specify the length penalty               |
+  | `--repetition_penalty`           | Specify the repetition penalty           |
+  | `--max_length_ratio`             | Specify the maximum length ratio         |
+  | `--min_length`                   | Specify the minimum length               |
+  | `--encoder_no_repeat_ngram_size` | Specify the encoder no repeat ngram size |
+  | `--no_repeat_ngram_size`         | Specify the no repeat ngram size         |
+  | `--early_stopping`               | Enable early stopping                    |
+  | `--shuffle`                      | Shuffle the input data                   |
+  | `--lowercase`                    | Convert input to lowercase               |
+  | `--loglevel`                     | Specify the log level                    |
+  | `--logfile`                      | Specify the log file                     |
+  | `--file_extension`               | Specify the file extension               |
+  | `--skip_completed`               | Skip completed files                     |
+
+</details>
+
+
+Some useful options are:
+
+Arguments:
+
+- `input_dir`: The directory containing the input text files to be summarized.
+- `--model`: model name or path to use for summarization. (Optional)
+- `--shuffle`: Shuffle the input files before processing. (Optional)
+- `--skip_completed`: Skip already completed files in the output directory. (Optional)
+- `--batch_length`: The maximum length of each input batch. Default is 4096. (Optional)
+- `--output_dir`: The directory to write the summarized output files. Default is `./summarized/`. (Optional)
 
 For more information, run the following:
 
@@ -151,7 +218,7 @@ This will start a local server that you can access in your browser & a shareable
 
 [^1]: The demo is minimal but will be expanded to accept other arguments and options.
 
-## Using Big Models
+## Models
 
 Summarization is a memory-intensive task, and the [default model is relatively small and efficient](https://huggingface.co/pszemraj/long-t5-tglobal-base-16384-book-summary) for long-form text summarization. If you want to use a bigger model, you can specify the `model_name_or_path` argument when instantiating the `Summarizer` class.
 
@@ -165,9 +232,21 @@ You can also use the `-m` argument when using the CLI:
 textsum-dir /path/to/dir -m pszemraj/long-t5-tglobal-xl-16384-book-summary
 ```
 
-### Reducing Memory Usage
+Any [text-to-text](https://huggingface.co/models?filter=text2text) or [summarization](https://huggingface.co/models?filter=summarization) model from the [HuggingFace model hub](https://huggingface.co/models) can be used. Models are automatically downloaded and cached in `~/.cache/huggingface/hub`.
 
-#### EFficient Inference
+---
+
+## Advanced Configuration
+
+### Parameters
+
+Memory usage can also be reduced by adjusting the parameters for inference. This is discussed in detail in the [project wiki](https://github.com/pszemraj/textsum/wiki).
+
+tl;dr for this README: use the `summarizer.set_inference_params()` and `summarizer.get_inference_params()` methods to adjust the parameters for inference from either a python `dict` or a JSON file.
+
+Support for `GenerationConfig` as the primary method to adjust inference parameters is planned for a future release.
+
+### 8-bit Quantization & TensorFloat32
 
 Some methods of reducing memory usage _if you have compatible hardware_ include loading the model in 8-bit precision via [LLM.int8](https://arxiv.org/abs/2208.07339) and using the `--tf32` flag to use TensorFloat32 precision. See the [transformers docs](https://huggingface.co/docs/transformers/perf_infer_gpu_one#efficient-inference-on-a-single-gpu) for more details on how this works. Using LLM.int8 requires the [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) package, which can either be installed directly or via the `textsum[8bit]` extra:
 
@@ -189,11 +268,44 @@ summarizer = Summarizer(load_in_8bit=True)
 
 If using the python API, it's better to initiate tf32 yourself; see [here](https://huggingface.co/docs/transformers/perf_train_gpu_one#tf32) for how.
 
-#### Parameters
+Here are some suggestions for additions to the README in order to reflect the latest changes in the `__init__` method of your `Summarizer` class:
 
-Memory usage can also be reduced by adjusting the parameters for inference. This is discussed in detail in the [project wiki](https://github.com/pszemraj/textsum/wiki).
+### Using Optimum ONNX Runtime
 
-tl;dr for this README, you can use the `.set_inference_params()` and `.get_inference_params()` methods to adjust the parameters for inference.
+> ⚠️ **Note:** This feature is experimental and might not work as expected. Use at your own risk. ⚠️🧪
+
+ONNX Runtime is a performance-focused inference engine for ONNX models. It can be used to enhance the speed of model predictions, especially on Windows and in environments where GPU acceleration is not available. If you want to use ONNX runtime for inference, you need to set `optimum_onnx=True` when initializing the `Summarizer` class.
+
+First, install with `pip install textsum[optimum]`. Then, you can use the following code to initialize the `Summarizer` class with ONNX runtime:
+
+```python
+summarizer = Summarizer(optimum_onnx=True)
+```
+
+**Notes:**
+
+1. ONNX runtime+cuda needs an additional package. Manually install `onnxruntime-gpu` if you plan to use ONNX with GPU.
+2. Using ONNX runtime might lead to different behavior in certain models. It is recommended to test the model with and without ONNX runtime **the same input text** before using it for anything important.
+
+### Force Cache
+
+By default, the summarization model uses past computations to speed up decoding. If you want to force the model to always use cache irrespective of the model's default behavior, you can set `force_cache=True` when initializing the `Summarizer` class.
+
+```python
+summarizer = Summarizer(force_cache=True)
+```
+
+**Note:** Setting `force_cache=True` might lead to different behavior in certain models.
+
+### Compile Model
+
+By default, the model isn't compiled for efficient inference. If you want to compile the model for faster inference times, you can set `compile_model=True` when initializing the `Summarizer` class.
+
+```python
+summarizer = Summarizer(compile_model=True)
+```
+
+**Note:** Compiling the model might not be supported on all platforms and requires pytorch > 2.0.0.
 
 ---
 
@@ -203,14 +315,14 @@ Contributions are welcome! Please open an issue or PR if you have any ideas or s
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to contribute.
 
-## Roadmap
+## Road Map
 
 - [x] add CLI for summarization of all text files in a directory
 - [x] python API for summarization of text docs
 - [ ] add argparse CLI for UI demo
 - [x] put on PyPI
 - [x] LLM.int8 inference
-- [ ] optimum inference integration
+- [x] optimum inference integration
 - [ ] better documentation [in the wiki](https://github.com/pszemraj/textsum/wiki), details on improving performance (speed, quality, memory usage, etc.)
 - [ ] improvements to the PDF OCR helper module
 
