@@ -24,7 +24,7 @@ from textsum.utils import (
 
 class Summarizer:
     """
-    Summarizer - a class that contains functions for summarizing text with a transformers model
+    Summarizer - utility class for summarizing long text using a pretrained model
     """
 
     settable_inference_params = [
@@ -180,6 +180,9 @@ class Summarizer:
             "inference_params": self.inference_params,
             "textsum_version": textsum.__version__,
         }
+
+    def __repr__(self):
+        return f"Summarizer(model_name_or_path={self.model_name_or_path}, use_cuda={self.use_cuda}, token_batch_length={self.token_batch_length}, batch_stride={self.batch_stride}, max_length_ratio={self.max_length_ratio}, load_in_8bit={self.load_in_8bit}, compile_model={self.compile_model}, optimum_onnx={self.optimum_onnx})"
 
     def set_inference_params(
         self,

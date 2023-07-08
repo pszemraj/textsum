@@ -31,7 +31,7 @@ For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/
   - [🔦 Quick Start Guide](#-quick-start-guide)
   - [Installation](#installation)
     - [Full Installation](#full-installation)
-    - [Additional Details](#additional-details)
+    - [Extra Features](#extra-features)
   - [Usage](#usage)
     - [Python API](#python-api)
     - [CLI](#cli)
@@ -75,18 +75,17 @@ print(f'Summary: {summary}')
 
 ## Installation
 
-Install using pip:
+Install using pip with Python 3.8 or later (_after creating a virtual environment_):
 
 ```bash
-# create a virtual environment (optional)
 pip install textsum
 ```
 
-The `textsum` package is now installed in your virtual environment. CLI commands/python API can summarize text docs from anywhere. see the [Usage](#usage) section for more details.
+The `textsum` package is now installed in your virtual environment. [CLI commands](#cli) are available in your terminal, and the [python API](#python-api) is available in your python environment.
 
 ### Full Installation
 
-To install all the dependencies _(includes PDF OCR, gradio UI demo, optimum, etc)_, run:
+For a full installation, which includes additional features such as PDF OCR, Gradio UI demo, and Optimum, run the following commands:
 
 ```bash
 git clone https://github.com/pszemraj/textsum.git
@@ -95,15 +94,19 @@ cd textsum
 pip install -e .[all]
 ```
 
-### Additional Details
+### Extra Features
 
-This package uses the [clean-text](https://github.com/jfilter/clean-text) python package, and like the "base" version of the package, **does not** include the GPL-licensed `unidecode` dependency. If you want to use the `unidecode` package, install the package as an extra with `pip`:
+The package also supports a number of optional extra features, which can be installed as follows:
 
-```bash
-pip install textsum[unidecode]
-```
+- `8bit`: Install with `pip install -e .[8bit]`
+- `optimum`: Install with `pip install -e .[optimum]`
+- `PDF`: Install with `pip install -e .[PDF]`
+- `app`: Install with `pip install -e .[app]`
+- `unidecode`: Install with `pip install -e .[unidecode]`
 
-In practice, text cleaning pre-summarization with/without `unidecode` should not make a significant difference.
+Read below for more details on how to use these features.
+
+> _Note:_ The `unidecode` extra is a GPL-licensed dependency that is not included by default with the `clean-text` python package. While it can be used for text cleaning pre-summarization, it generally should not make a significant difference in most use cases.
 
 ## Usage
 
@@ -142,6 +145,22 @@ To summarize a directory of text files, run the following command:
 
 ```bash
 textsum-dir /path/to/dir
+```
+
+A full list:
+
+```shell
+Usage: textsum-dir INPUT_DIR <flags>
+  optional flags:        --output_dir | --model | --no_cuda | --tf32 |
+                         --force_cache | --load_in_8bit | --compile |
+                         --optimum_onnx | --batch_length | --batch_stride |
+                         --num_beams | --length_penalty |
+                         --repetition_penalty | --max_length_ratio |
+                         --min_length | --encoder_no_repeat_ngram_size |
+                         --no_repeat_ngram_size | --early_stopping |
+                         --shuffle | --lowercase | --loglevel | --logfile |
+                         --file_extension | --skip_completed
+
 ```
 
 Some useful options are:
