@@ -1,6 +1,7 @@
 """
 summarize.py - a module that contains functions for summarizing text
 """
+
 import json
 import logging
 import sys
@@ -52,6 +53,7 @@ class Summarizer:
         compile_model: bool = False,
         optimum_onnx: bool = False,
         force_cache: bool = False,
+        disable_progress_bar: bool = False,
         **kwargs,
     ):
         """
@@ -70,7 +72,7 @@ class Summarizer:
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
-
+        self.disable_progress_bar = disable_progress_bar
         self.model_name_or_path = model_name_or_path
         self.device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
         self.logger.debug(f"loading model {model_name_or_path} to {self.device}")
@@ -298,6 +300,7 @@ class Summarizer:
         batch_stride: int = None,
         min_batch_length: int = 512,
         pad_incomplete_batch: bool = True,
+        disable_progress_bar: bool = None,
         **kwargs,
     ):
         """
@@ -312,6 +315,11 @@ class Summarizer:
 
         batch_length = self.token_batch_length if batch_length is None else batch_length
         batch_stride = self.batch_stride if batch_stride is None else batch_stride
+        disable_progress_bar = (
+            self.disable_progress_bar
+            if disable_progress_bar is None
+            else disable_progress_bar
+        )
 
         if batch_length < min_batch_length:
             self.logger.warning(
@@ -340,7 +348,11 @@ class Summarizer:
         in_id_arr, att_arr = encoded_input.input_ids, encoded_input.attention_mask
 
         gen_summaries = []
-        pbar = tqdm(total=len(in_id_arr), desc="Generating Summaries")
+        pbar = tqdm(
+            total=len(in_id_arr),
+            desc="Generating Summaries",
+            disable=disable_progress_bar,
+        )
 
         for _id, _mask in zip(in_id_arr, att_arr):
             # If the batch is smaller than batch_length, pad it with the model's pad token
@@ -448,6 +460,7 @@ class Summarizer:
         input_text: str,
         batch_length: int = None,
         batch_stride: int = None,
+        disable_progress_bar: bool = None,
         **kwargs,
     ) -> str:
         """
@@ -475,6 +488,7 @@ class Summarizer:
             input_text,
             batch_length=batch_length,
             batch_stride=batch_stride,
+            disable_progress_bar=disable_progress_bar,
             **kwargs,
         )
 
@@ -487,6 +501,7 @@ class Summarizer:
         batch_length=None,
         batch_stride=None,
         lowercase: bool = False,
+        disable_progress_bar: bool = None,
         **kwargs,
     ) -> Path:
         """
@@ -512,6 +527,7 @@ class Summarizer:
             text,
             batch_length=batch_length,
             batch_stride=batch_stride,
+            disable_progress_bar=disable_progress_bar,
             **kwargs,
         )
 
