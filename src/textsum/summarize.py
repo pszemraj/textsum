@@ -4,9 +4,9 @@ summarize.py - a module that contains functions for summarizing text
 
 import json
 import logging
+import pprint as pp
 import sys
 import warnings
-import pprint as pp
 from pathlib import Path
 
 import torch
@@ -90,8 +90,8 @@ class Summarizer:
                 device_map="auto",
             )
         elif optimum_onnx:
-            from optimum.onnxruntime import ORTModelForSeq2SeqLM
             import onnxruntime
+            from optimum.onnxruntime import ORTModelForSeq2SeqLM
 
             if self.device == "cuda":
                 self.logger.warning(

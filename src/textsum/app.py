@@ -25,7 +25,7 @@ from doctr.models import ocr_predictor
 
 from textsum.pdf2text import convert_PDF_to_Text
 from textsum.summarize import Summarizer
-from textsum.utils import truncate_word_count, get_timestamp
+from textsum.utils import get_timestamp, truncate_word_count
 
 _here = Path.cwd()
 
@@ -214,7 +214,6 @@ def main():
 
     demo = gr.Blocks()
     with demo:
-
         gr.Markdown("# Summarization UI with `textsum`")
         gr.Markdown(
             f"""
@@ -224,21 +223,18 @@ def main():
             """
         )
         with gr.Column():
-
             gr.Markdown("## Load Inputs & Select Parameters")
             gr.Markdown(
                 "Enter text below in the text area. The text will be summarized [using the selected parameters](https://huggingface.co/blog/how-to-generate). Optionally load an example below or upload a file. (`.txt` or `.pdf` - _[link to guide](https://i.imgur.com/c6Cs9ly.png)_)"
             )
             with gr.Row(variant="compact"):
                 with gr.Column(scale=0.5, variant="compact"):
-
                     num_beams = gr.Radio(
                         choices=[2, 3, 4],
                         label="Beam Search: # of Beams",
                         value=2,
                     )
                 with gr.Column(variant="compact"):
-
                     uploaded_file = gr.File(
                         label="File Upload",
                         file_count="single",
@@ -251,7 +247,6 @@ def main():
                     placeholder="Enter text to summarize, the text will be cleaned and truncated on Spaces. Narrative, academic (both papers and lecture transcription), and article text work well. May take a bit to generate depending on the input text :)",
                 )
                 with gr.Column(min_width=100, scale=0.5):
-
                     load_file_button = gr.Button("Upload File")
 
         with gr.Column():

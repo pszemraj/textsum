@@ -136,7 +136,6 @@ def clean_OCR(ugly_text: str):
 
 
 def move2completed(from_dir, filename, new_folder="completed", verbose=False):
-
     # this is the better version
     old_filepath = join(from_dir, filename)
 
@@ -275,7 +274,6 @@ def cleantxt_ocr(ugly_text, lower=False, lang: str = "en") -> str:
 
 
 def format_ocr_out(OCR_data):
-
     if isinstance(OCR_data, list):
         text = " ".join(OCR_data)
     else:
@@ -322,7 +320,6 @@ def convert_PDF_to_Text(
     ocr_model=None,
     max_pages: int = 20,
 ):
-
     st = time.perf_counter()
     PDF_file = Path(PDF_file)
     ocr_model = ocr_predictor(pretrained=True) if ocr_model is None else ocr_model
