@@ -243,7 +243,7 @@ class Summarizer:
         """update the loglevel of the logger"""
         self.logger.setLevel(loglevel)
 
-    def summarize_and_score(self, ids, mask, autocast_enabled: bool = True, **kwargs):
+    def summarize_and_score(self, ids, mask, autocast_enabled: bool = False, **kwargs):
         """
         summarize_and_score - summarize a batch of text and return the summary and output scores
 
