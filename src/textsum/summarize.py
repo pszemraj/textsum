@@ -243,7 +243,7 @@ class Summarizer:
         """update the loglevel of the logger"""
         self.logger.setLevel(loglevel)
 
-    def summarize_and_score(self, ids, mask, **kwargs):
+    def summarize_and_score(self, ids, mask, autocast_enabled: bool = True, **kwargs):
         """
         summarize_and_score - summarize a batch of text and return the summary and output scores
 
@@ -262,27 +262,28 @@ class Summarizer:
         # put global attention on <s> token
         global_attention_mask[:, 0] = 1
 
-        self.logger.debug(
-            f"generating summary for batch of size {input_ids.shape} with {kwargs}"
-        )
-        if self.is_general_attention_model:
-            summary_pred_ids = self.model.generate(
-                input_ids,
-                attention_mask=attention_mask,
-                output_scores=True,
-                return_dict_in_generate=True,
-                **kwargs,
-            )
-        else:
-            # this is for LED etc.
-            summary_pred_ids = self.model.generate(
-                input_ids,
-                attention_mask=attention_mask,
-                global_attention_mask=global_attention_mask,
-                output_scores=True,
-                return_dict_in_generate=True,
-                **kwargs,
-            )
+        self.logger.debug(f"gen. summary batch, size {input_ids.shape} with {kwargs}")
+        with torch.autocast(device_type=self.device, enabled=autocast_enabled):
+
+            if self.is_general_attention_model:
+                summary_pred_ids = self.model.generate(
+                    input_ids,
+                    attention_mask=attention_mask,
+                    output_scores=True,
+                    return_dict_in_generate=True,
+                    **kwargs,
+                )
+            else:
+                # this is for LED etc.
+                summary_pred_ids = self.model.generate(
+                    input_ids,
+                    attention_mask=attention_mask,
+                    global_attention_mask=global_attention_mask,
+                    output_scores=True,
+                    return_dict_in_generate=True,
+                    **kwargs,
+                )
+
         summary = self.tokenizer.batch_decode(
             summary_pred_ids.sequences,
             skip_special_tokens=True,
@@ -353,8 +354,8 @@ class Summarizer:
             desc="Generating Summaries",
             disable=disable_progress_bar,
         )
-
         for _id, _mask in zip(in_id_arr, att_arr):
+
             # If the batch is smaller than batch_length, pad it with the model's pad token
             if len(_id) < batch_length and pad_incomplete_batch:
                 self.logger.debug(
