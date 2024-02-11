@@ -56,7 +56,7 @@ class Summarizer:
         disable_progress_bar: bool = False,
         **kwargs,
     ):
-        """
+        f"""
         __init__ - initialize the Summarizer class
 
         :param str model_name_or_path: the name or path of the model to load, defaults to "pszemraj/long-t5-tglobal-base-16384-book-summary"
@@ -69,7 +69,8 @@ class Summarizer:
         :param bool compile_model: whether to compile the model (pytorch 2.0+ only), defaults to False
         :param bool optimum_onnx: whether to load the model in ONNX Runtime, defaults to False
         :param bool force_cache: whether to force the model to use cache, defaults to False
-        :param kwargs: additional keyword arguments to pass to the model as inference parameters
+        :param bool disable_progress_bar: whether to disable the progress bar, defaults to False
+        :param kwargs: additional keyword arguments to pass to the model as inference parameters, any of: {self.settable_inference_params}
         """
         self.logger = logging.getLogger(__name__)
         self.device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
@@ -251,10 +252,11 @@ class Summarizer:
 
     def summarize_and_score(self, ids, mask, autocast_enabled: bool = False, **kwargs):
         """
-        summarize_and_score - summarize a batch of text and return the summary and output scores
+        summarize_and_score - run inference on a batch of ids with the given attention mask
 
         :param ids: the token ids of the tokenized batch to summarize
         :param mask: the attention mask of the tokenized batch to summarize
+        :param bool autocast_enabled: whether to use autocast for inference
         :return tuple: a tuple containing the summary and output scores
         """
 
@@ -316,7 +318,11 @@ class Summarizer:
         :param str input_text: the text to summarize
         :param int batch_length: number of tokens to include in each input batch, default None (self.token_batch_length)
         :param int batch_stride: number of tokens to stride between batches, default None (self.token_batch_stride)
+        :param int min_batch_length: minimum number of tokens in a batch, default 512
         :param bool pad_incomplete_batch: whether to pad the last batch to the length of the longest batch, default True
+        :param bool disable_progress_bar: whether to disable the progress bar, default None
+        :param kwargs: additional keyword arguments to pass to the summarize_and_score function
+
         :return: a list of summaries, a list of scores, and a list of the input text for each batch
         """
 
@@ -476,6 +482,9 @@ class Summarizer:
         :param str input_text: the text to summarize
         :param int batch_length: number of tokens to use in each batch, defaults to None (self.token_batch_length)
         :param int batch_stride: number of tokens to stride between batches, defaults to None (self.batch_stride)
+        :param bool disable_progress_bar: whether to disable the progress bar, defaults to None
+        :param kwargs: additional parameters to pass to summarize_via_tokenbatches
+
         :return str: the summary
         """
 
@@ -519,6 +528,8 @@ class Summarizer:
         :param int batch_length: number of tokens to use in each batch, defaults to None (self.token_batch_length)
         :param int batch_stride: number of tokens to stride between batches, defaults to None (self.batch_stride)
         :param bool lowercase: whether to lowercase the text prior to summarization, defaults to False
+        :param bool disable_progress_bar: whether to disable the progress bar, defaults to None
+        :param kwargs: additional parameters to pass to summarize_via_tokenbatches
 
         :return Path: the path to the summary file
         """
