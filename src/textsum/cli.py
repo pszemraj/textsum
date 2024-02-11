@@ -4,6 +4,7 @@ cli.py - Command line interface for textsum.
 Usage:
     textsum-dir --help
 """
+
 import logging
 import pprint as pp
 import random
@@ -44,6 +45,7 @@ def main(
     logfile: Optional[str] = None,
     file_extension: str = "txt",
     skip_completed: bool = False,
+    disable_progress_bar: bool = False,
 ):
     """
     Main function to summarize text files in a directory.
@@ -107,6 +109,7 @@ def main(
         compile_model=compile,
         optimum_onnx=optimum_onnx,
         force_cache=force_cache,
+        disable_progress_bar=disable_progress_bar,
         **params,
     )
     summarizer.print_config()
@@ -142,7 +145,7 @@ def main(
             failed_files.append(f)
             if isinstance(e, RuntimeError):
                 # if a runtime error occurs, exit immediately
-                logging.error("Not continuing summarization due to runtime error")
+                logging.error("Stopping summarization: runtime error")
                 failed_files.extend(input_files[input_files.index(f) + 1 :])
                 break
 
