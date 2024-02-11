@@ -597,3 +597,26 @@ class Summarizer:
         if verbose:
             self.logger.info(f"parameters: {exported_params}")
             print(f"saved parameters to {metadata_path}")
+
+    def __call__(self, input_data, **kwargs):
+        """
+        Smart __call__ function to decide where to route the inputs based on whether a valid filepath is passed.
+
+        :param input_data: Can be either a string (text to summarize) or a file path.
+        :param kwargs: Additional keyword arguments to pass to the summarization methods.
+        :return: The summary of the input text, or saves the summary to a file if a file path is provided.
+
+        Example usage:
+            summarizer = Summarizer()
+            summary = summarizer("This is a test string to summarize.")
+            # or
+            summary = summarizer("/path/to/textfile.txt")
+        """
+        if isinstance(input_data, (str, Path)) and Path(input_data).is_file():
+            self.logger.debug("Summarizing from file...")
+            return self.summarize_file(file_path=input_data, **kwargs)
+        elif isinstance(input_data, str):
+            self.logger.debug("Summarizing from string...")
+            return self.summarize_string(input_text=input_data, **kwargs)
+        else:
+            raise ValueError("Input must be a valid string or a file path.")
