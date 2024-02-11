@@ -72,9 +72,12 @@ class Summarizer:
         :param kwargs: additional keyword arguments to pass to the model as inference parameters
         """
         self.logger = logging.getLogger(__name__)
-        self.disable_progress_bar = disable_progress_bar
-        self.model_name_or_path = model_name_or_path
         self.device = "cuda" if torch.cuda.is_available() and use_cuda else "cpu"
+        self.disable_progress_bar = disable_progress_bar
+        self.force_cache = force_cache
+        self.is_general_attention_model = is_general_attention_model
+        self.model_name_or_path = model_name_or_path
+        self.use_cuda = use_cuda
         self.logger.debug(f"loading model {model_name_or_path} to {self.device}")
 
         if load_in_8bit:
@@ -183,8 +186,11 @@ class Summarizer:
             "textsum_version": textsum.__version__,
         }
 
+    def __str__(self):
+        return f"Summarizer({json.dumps(self.config)})"
+
     def __repr__(self):
-        return f"Summarizer(model_name_or_path={self.model_name_or_path}, use_cuda={self.use_cuda}, token_batch_length={self.token_batch_length}, batch_stride={self.batch_stride}, max_length_ratio={self.max_length_ratio}, load_in_8bit={self.load_in_8bit}, compile_model={self.compile_model}, optimum_onnx={self.optimum_onnx})"
+        return self.__str__()
 
     def set_inference_params(
         self,
