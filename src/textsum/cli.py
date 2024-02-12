@@ -32,7 +32,7 @@ def main(
     batch_length: int = 4096,
     batch_stride: int = 16,
     num_beams: int = 4,
-    length_penalty: float = 0.8,
+    length_penalty: float = 1.0,
     repetition_penalty: float = 2.5,
     max_length_ratio: float = 0.25,
     min_length: int = 8,
@@ -63,7 +63,7 @@ def main(
         batch_length (int, optional): The length of each batch. Default: 4096.
         batch_stride (int, optional): The stride of each batch. Default: 16.
         num_beams (int, optional): The number of beams to use for beam search. Default: 4.
-        length_penalty (float, optional): The length penalty to use for decoding. Default: 0.8.
+        length_penalty (float, optional): The length penalty to use for decoding. Default: 1.0.
         repetition_penalty (float, optional): The repetition penalty to use for beam search. Default: 2.5.
         max_length_ratio (float, optional): The maximum length of the summary as a ratio of the batch length. Default: 0.25.
         min_length (int, optional): The minimum length of the summary. Default: 8.

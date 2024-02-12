@@ -159,7 +159,7 @@ class Summarizer:
             "repetition_penalty": 2.5,
             "num_beams": 4,
             "num_beam_groups": 1,
-            "length_penalty": 0.8,
+            "length_penalty": 1.0,
             "early_stopping": True,
             "do_sample": False,
         }  # default inference parameters
