@@ -402,6 +402,7 @@ class Summarizer:
         summary_data: dict,
         target_file: str or Path = None,
         postprocess: bool = True,
+        batch_delimiter: str = "\n\n",
         custom_phrases: list = None,
         save_scores: bool = True,
         return_string: bool = False,
@@ -412,6 +413,7 @@ class Summarizer:
         :param dict summary_data: output of summarize_via_tokenbatches containing the summary and score for each batch
         :param str or Path target_file: the file to save the summary to, defaults to None
         :param bool postprocess: whether to postprocess the summary, defaults to True
+        :param str batch_delimiter: text delimiter between summary batches, defaults to "\n\n"
         :param list custom_phrases: a list of custom phrases to use in postprocessing, defaults to None
         :param bool save_scores: whether to save the scores for each batch, defaults to True
         :param bool return_string: whether to return the summary as a string, defaults to False
@@ -435,7 +437,7 @@ class Summarizer:
 
         sum_scores = [f"\n - {round(s['summary_score'],4)}" for s in summary_data]
         scores_text = "\n".join(sum_scores)
-        full_summary = "\n".join(sum_text)
+        full_summary = batch_delimiter.join(sum_text)
         if return_string:
             return full_summary
 
