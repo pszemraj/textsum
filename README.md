@@ -268,8 +268,6 @@ summarizer = Summarizer(load_in_8bit=True)
 
 If using the python API, it's better to initiate tf32 yourself; see [here](https://huggingface.co/docs/transformers/perf_train_gpu_one#tf32) for how.
 
-Here are some suggestions for additions to the README in order to reflect the latest changes in the `__init__` method of your `Summarizer` class:
-
 ### Using Optimum ONNX Runtime
 
 > ⚠️ **Note:** This feature is experimental and might not work as expected. Use at your own risk. ⚠️🧪
@@ -324,7 +322,8 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) file for details on how to contribute
 - [x] LLM.int8 inference
 - [x] optimum inference integration
 - [ ] better documentation [in the wiki](https://github.com/pszemraj/textsum/wiki), details on improving performance (speed, quality, memory usage, etc.)
-- [ ] improvements to the PDF OCR helper module
+  - [x] in-progress
+- [ ] improvements to the PDF OCR helper module (_TBD - may focus more on being a summarization tool_)
 
 _Other ideas? Open an issue or PR!_
 
