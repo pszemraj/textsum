@@ -614,7 +614,11 @@ class Summarizer:
             # or
             summary = summarizer("/path/to/textfile.txt")
         """
-        if isinstance(input_data, (str, Path)) and Path(input_data).is_file():
+        if (
+            len(str(input_data)) < 1000  # assume > 1000 characters is plaintext
+            and isinstance(input_data, (str, Path))
+            and Path(input_data).is_file()
+        ):
             self.logger.debug("Summarizing from file...")
             return self.summarize_file(file_path=input_data, **kwargs)
         elif isinstance(input_data, str):
