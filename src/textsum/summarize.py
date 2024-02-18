@@ -476,6 +476,7 @@ class Summarizer:
         input_text: str,
         batch_length: int = None,
         batch_stride: int = None,
+        batch_delimiter: str = "\n\n",
         disable_progress_bar: bool = None,
         **kwargs,
     ) -> str:
@@ -511,15 +512,21 @@ class Summarizer:
             **kwargs,
         )
 
-        return self.save_summary(summary_data=gen_summaries, return_string=True)
+        return self.save_summary(
+            summary_data=gen_summaries,
+            return_string=True,
+            batch_delimiter=batch_delimiter,
+        )
 
     def summarize_file(
         self,
         file_path: Union[str, Path],
-        output_dir: Union[str, Path] = None,
+        lowercase: bool = False,
         batch_length=None,
         batch_stride=None,
-        lowercase: bool = False,
+        batch_delimiter: str = "\n\n",
+        save_scores: bool = True,
+        output_dir: Union[str, Path] = None,
         disable_progress_bar: bool = None,
         **kwargs,
     ) -> Path:
@@ -555,6 +562,8 @@ class Summarizer:
         self.save_summary(
             gen_summaries,
             output_file,
+            batch_delimiter=batch_delimiter,
+            save_scores=save_scores,
         )
 
         return output_file
