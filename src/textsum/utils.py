@@ -176,7 +176,7 @@ def setup_logging(loglevel, logfile=None) -> None:
         logfile = Path(logfile)
         loglevel = (
             logging.INFO
-            if not loglevel in [logging.DEBUG, logging.INFO, logging.WARNING]
+            if loglevel not in [logging.DEBUG, logging.INFO, logging.WARNING]
             else loglevel
         )
         if loglevel == logging.DEBUG:
@@ -218,7 +218,7 @@ def check_bitsandbytes_available():
     check_bitsandbytes_available - check if the bitsandbytes library is available
     """
     try:
-        import bitsandbytes
+        import bitsandbytes  # noqa: F401
     except ImportError:
         return False
     return True

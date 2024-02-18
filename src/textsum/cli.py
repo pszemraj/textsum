@@ -4,6 +4,7 @@ cli.py - Command line interface for textsum.
 Usage:
     textsum-dir --help
 """
+
 import logging
 import pprint as pp
 import random
@@ -31,7 +32,7 @@ def main(
     batch_length: int = 4096,
     batch_stride: int = 16,
     num_beams: int = 4,
-    length_penalty: float = 0.8,
+    length_penalty: float = 1.0,
     repetition_penalty: float = 2.5,
     max_length_ratio: float = 0.25,
     min_length: int = 8,
@@ -44,6 +45,7 @@ def main(
     logfile: Optional[str] = None,
     file_extension: str = "txt",
     skip_completed: bool = False,
+    disable_progress_bar: bool = False,
 ):
     """
     Main function to summarize text files in a directory.
@@ -61,7 +63,7 @@ def main(
         batch_length (int, optional): The length of each batch. Default: 4096.
         batch_stride (int, optional): The stride of each batch. Default: 16.
         num_beams (int, optional): The number of beams to use for beam search. Default: 4.
-        length_penalty (float, optional): The length penalty to use for decoding. Default: 0.8.
+        length_penalty (float, optional): The length penalty to use for decoding. Default: 1.0.
         repetition_penalty (float, optional): The repetition penalty to use for beam search. Default: 2.5.
         max_length_ratio (float, optional): The maximum length of the summary as a ratio of the batch length. Default: 0.25.
         min_length (int, optional): The minimum length of the summary. Default: 8.
@@ -74,6 +76,7 @@ def main(
         logfile (str, optional): Path to the log file. This will set loglevel to INFO (if not set) and write to the file.
         file_extension (str, optional): The file extension to use when searching for input files.,  defaults to "txt"
         skip_completed (bool, optional): Skip files that have already been summarized. Default: False.
+        disable_progress_bar (bool, optional): Disable the progress bar for intra-file summarization batches. Default: False.
 
     Returns:
         None
@@ -107,6 +110,7 @@ def main(
         compile_model=compile,
         optimum_onnx=optimum_onnx,
         force_cache=force_cache,
+        disable_progress_bar=disable_progress_bar,
         **params,
     )
     summarizer.print_config()
@@ -142,7 +146,7 @@ def main(
             failed_files.append(f)
             if isinstance(e, RuntimeError):
                 # if a runtime error occurs, exit immediately
-                logging.error("Not continuing summarization due to runtime error")
+                logging.error("Stopping summarization: runtime error")
                 failed_files.extend(input_files[input_files.index(f) + 1 :])
                 break
 
