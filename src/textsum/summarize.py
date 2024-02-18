@@ -273,7 +273,6 @@ class Summarizer:
 
         self.logger.debug(f"gen. summary batch, size {input_ids.shape} with {kwargs}")
         with torch.autocast(device_type=self.device, enabled=autocast_enabled):
-
             if self.is_general_attention_model:
                 summary_pred_ids = self.model.generate(
                     input_ids,
@@ -368,7 +367,6 @@ class Summarizer:
             disable=disable_progress_bar,
         )
         for _id, _mask in zip(in_id_arr, att_arr):
-
             # If the batch is smaller than batch_length, pad it with the model's pad token
             if len(_id) < batch_length and pad_incomplete_batch:
                 self.logger.debug(
