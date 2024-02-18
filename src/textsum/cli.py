@@ -76,6 +76,7 @@ def main(
         logfile (str, optional): Path to the log file. This will set loglevel to INFO (if not set) and write to the file.
         file_extension (str, optional): The file extension to use when searching for input files.,  defaults to "txt"
         skip_completed (bool, optional): Skip files that have already been summarized. Default: False.
+        disable_progress_bar (bool, optional): Disable the progress bar for intra-file summarization batches. Default: False.
 
     Returns:
         None
