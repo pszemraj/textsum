@@ -1,21 +1,13 @@
 """
 app.py - a module to run the text summarization app (gradio interface)
 """
+
 import contextlib
 import logging
 import os
 import re
 import time
 from pathlib import Path
-
-os.environ["USE_TORCH"] = "1"
-os.environ["DEMO_MAX_INPUT_WORDS"] = "2048"  # number of words to truncate input to
-os.environ["DEMO_MAX_INPUT_PAGES"] = "20"  # number of pages to truncate PDFs to
-os.environ["TOKENIZERS_PARALLELISM"] = "false"  # parallelism is buggy with gradio
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
 import gradio as gr
 import nltk
@@ -26,6 +18,14 @@ from textsum.pdf2text import convert_PDF_to_Text
 from textsum.summarize import Summarizer
 from textsum.utils import get_timestamp, truncate_word_count
 
+os.environ["USE_TORCH"] = "1"
+os.environ["DEMO_MAX_INPUT_WORDS"] = "2048"  # number of words to truncate input to
+os.environ["DEMO_MAX_INPUT_PAGES"] = "20"  # number of pages to truncate PDFs to
+os.environ["TOKENIZERS_PARALLELISM"] = "false"  # parallelism is buggy with gradio
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 _here = Path.cwd()
 
 nltk.download("stopwords")  # TODO=find where this requirement originates from

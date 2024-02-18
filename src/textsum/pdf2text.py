@@ -7,15 +7,6 @@ pdf2text.py - convert pdf files to text files (OCR). helper functions for textsu
 """
 
 import logging
-from pathlib import Path
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%m/%d/%Y %I:%M:%S",
-)
-
-
 import os
 import re
 import shutil
@@ -28,6 +19,12 @@ from cleantext import clean
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
 from spellchecker import SpellChecker
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%m/%d/%Y %I:%M:%S",
+)
 
 
 def simple_rename(filepath, target_ext=".txt"):
