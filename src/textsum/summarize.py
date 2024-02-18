@@ -8,6 +8,7 @@ import pprint as pp
 import sys
 import warnings
 from pathlib import Path
+from typing import Union
 
 import torch
 from cleantext import clean
@@ -196,13 +197,13 @@ class Summarizer:
     def set_inference_params(
         self,
         new_params: dict = None,
-        config_file: str or Path = None,
+        config_file: Union[str, Path] = None,
     ):
         """
         set_inference_params - update the inference parameters to use when summarizing text
 
         :param dict new_params: a dictionary of new inference parameters to use, defaults to None
-        :param str or Path config_file: a path to a json file containing inference parameters, defaults to None
+        :param Union[str, Path] config_file: a path to a json file containing inference parameters, defaults to None
 
         NOTE: if both new_params and config_file are provided, entries in the config_file will overwrite entries in new_params if they have the same key
         """
@@ -241,7 +242,7 @@ class Summarizer:
         """print the current configuration"""
         print(json.dumps(self.config, indent=2))
 
-    def save_config(self, path: str or Path = "textsum_config.json"):
+    def save_config(self, path: Union[str, Path] = "textsum_config.json"):
         """save the current configuration to a json file"""
         with open(path, "w", encoding="utf-8") as f:
             json.dump(self.config, f, indent=2)
@@ -400,7 +401,7 @@ class Summarizer:
     def save_summary(
         self,
         summary_data: dict,
-        target_file: str or Path = None,
+        target_file: Union[str, Path] = None,
         postprocess: bool = True,
         batch_delimiter: str = "\n\n",
         custom_phrases: list = None,
@@ -411,7 +412,7 @@ class Summarizer:
         save_summary - a function that takes the output of summarize_via_tokenbatches and saves it to a file after postprocessing
 
         :param dict summary_data: output of summarize_via_tokenbatches containing the summary and score for each batch
-        :param str or Path target_file: the file to save the summary to, defaults to None
+        :param Union[str, Path] target_file: the file to save the summary to, defaults to None
         :param bool postprocess: whether to postprocess the summary, defaults to True
         :param str batch_delimiter: text delimiter between summary batches, defaults to "\n\n"
         :param list custom_phrases: a list of custom phrases to use in postprocessing, defaults to None
@@ -514,8 +515,8 @@ class Summarizer:
 
     def summarize_file(
         self,
-        file_path: str or Path,
-        output_dir: str or Path = None,
+        file_path: Union[str, Path],
+        output_dir: Union[str, Path] = None,
         batch_length=None,
         batch_stride=None,
         lowercase: bool = False,
@@ -525,8 +526,8 @@ class Summarizer:
         """
         summarize_file - summarize a text file and save the summary to a file
 
-        :param str or Path file_path: the path to the text file
-        :param str or Path output_dir: the directory to save the summary to, defaults to None (current working directory)
+        :param Union[str, Path] file_path: the path to the text file
+        :param Union[str, Path] output_dir: the directory to save the summary to, defaults to None (current working directory)
         :param int batch_length: number of tokens to use in each batch, defaults to None (self.token_batch_length)
         :param int batch_stride: number of tokens to stride between batches, defaults to None (self.batch_stride)
         :param bool lowercase: whether to lowercase the text prior to summarization, defaults to False
@@ -560,7 +561,7 @@ class Summarizer:
 
     def save_params(
         self,
-        output_path: str or Path = None,
+        output_path: Union[str, Path] = None,
         hf_tag: str = None,
         verbose: bool = False,
     ) -> None:
@@ -568,7 +569,7 @@ class Summarizer:
         save_params - save the parameters of the run to a json file
 
         :param dict params: parameters to save
-        :param str or Path output_path: directory or filepath to save the parameters to
+        :param Union[str, Path] output_path: directory or filepath to save the parameters to
         :param str hf_tag: the model tag on huggingface (will be used instead of self.model_name_or_path)
         :param bool verbose: whether to log the parameters
 
