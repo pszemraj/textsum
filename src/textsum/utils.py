@@ -218,7 +218,7 @@ def check_bitsandbytes_available():
     check_bitsandbytes_available - check if the bitsandbytes library is available
     """
     try:
-        import bitsandbytes
+        import bitsandbytes  # noqa: F401
     except ImportError:
         return False
     return True
