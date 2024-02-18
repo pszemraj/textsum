@@ -484,6 +484,7 @@ class Summarizer:
         :param str input_text: the text to summarize
         :param int batch_length: number of tokens to use in each batch, defaults to None (self.token_batch_length)
         :param int batch_stride: number of tokens to stride between batches, defaults to None (self.batch_stride)
+        :param str batch_delimiter: text delimiter between summary batches, defaults to "\n\n"
         :param bool disable_progress_bar: whether to disable the progress bar, defaults to None
         :param kwargs: additional parameters to pass to summarize_via_tokenbatches
 
@@ -519,36 +520,36 @@ class Summarizer:
     def summarize_file(
         self,
         file_path: Union[str, Path],
+        output_dir: Union[str, Path] = None,
         lowercase: bool = False,
-        batch_length=None,
-        batch_stride=None,
+        batch_length: int = None,
+        batch_stride: int = None,
         batch_delimiter: str = "\n\n",
         save_scores: bool = True,
-        output_dir: Union[str, Path] = None,
         disable_progress_bar: bool = None,
         **kwargs,
     ) -> Path:
         """
-        summarize_file - summarize a text file and save the summary to a file
+        summarize_file - generate a summary for a text file
 
-        :param Union[str, Path] file_path: the path to the text file
-        :param Union[str, Path] output_dir: the directory to save the summary to, defaults to None (current working directory)
-        :param int batch_length: number of tokens to use in each batch, defaults to None (self.token_batch_length)
-        :param int batch_stride: number of tokens to stride between batches, defaults to None (self.batch_stride)
-        :param bool lowercase: whether to lowercase the text prior to summarization, defaults to False
-        :param bool disable_progress_bar: whether to disable the progress bar, defaults to None
-        :param kwargs: additional parameters to pass to summarize_via_tokenbatches
-
-        :return Path: the path to the summary file
+        :param Union[str, Path] file_path: The path to the text file.
+        :param Union[str, Path] output_dir: The path to the output directory, defaults to None
+        :param bool lowercase: whether to lowercase the text, defaults to False
+        :param int batch_length: Number of tokens to use in each batch, defaults to None
+        :param int batch_stride: Number of tokens to stride between batches, defaults to None
+        :param str batch_delimiter: Text delimiter between output summary batches, defaults to "\n\n"
+        :param bool save_scores: Whether to save the scores to the output file, defaults to True
+        :param bool disable_progress_bar: disable the progress bar, defaults to None
+        :return Path: The path to the output file
         """
 
         file_path = Path(file_path)
         output_dir = Path(output_dir) if output_dir is not None else Path.cwd()
-        output_file = output_dir / f"{file_path.stem}_summary.txt"
 
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             text = clean(f.read(), lower=lowercase)
 
+        # Generate summaries using token batches
         gen_summaries = self.summarize_via_tokenbatches(
             text,
             batch_length=batch_length,
@@ -557,6 +558,8 @@ class Summarizer:
             **kwargs,
         )
 
+        # Save the generated summaries to the output file
+        output_file = output_dir / f"{file_path.stem}_summary.txt"
         self.save_summary(
             gen_summaries,
             output_file,
