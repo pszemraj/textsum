@@ -16,13 +16,13 @@ from tqdm.auto import tqdm
 
 import textsum
 from textsum.summarize import Summarizer
-from textsum.utils import enable_tf32, setup_logging
+from textsum.utils import check_ampere_gpu, setup_logging
 
 
 def main(
     input_dir: str,
     output_dir: Optional[str] = None,
-    model: str = "pszemraj/long-t5-tglobal-base-16384-book-summary",
+    model: str = "BEE-spoke-data/pegasus-x-base-synthsumm_open-16k",
     no_cuda: bool = False,
     tf32: bool = False,
     force_cache: bool = False,
@@ -53,7 +53,7 @@ def main(
     Args:
         input_dir (str, required): The directory containing the input files.
         output_dir (str, optional): Directory to write the output files. If None, writes to input_dir/summarized.
-        model (str, optional): The name of the model to use for summarization. Default: "pszemraj/long-t5-tglobal-base-16384-book-summary".
+        model (str, optional): The name of the model to use for summarization. Default: "BEE-spoke-data/pegasus-x-base-synthsumm_open-16k".
         no_cuda (bool, optional): Flag to not use cuda if available. Default: False.
         tf32 (bool, optional): Enable tf32 data type for computation (requires ampere series GPU or newer). Default: False.
         force_cache (bool, optional): Force the use_cache flag to True in the Summarizer. Default: False.
@@ -98,7 +98,7 @@ def main(
     }
 
     if tf32:
-        enable_tf32()  # enable tf32 for computation
+        check_ampere_gpu()  # enable tf32 for computation
 
     summarizer = Summarizer(
         model_name_or_path=model,

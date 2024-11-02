@@ -26,7 +26,7 @@ from textsum.utils import (
 
 class Summarizer:
     """
-    Summarizer - utility class for summarizing long text using a pretrained model
+    Summarizer - utility class for summarizing long text using a pretrained text2text model
     """
 
     settable_inference_params = [
@@ -44,10 +44,10 @@ class Summarizer:
 
     def __init__(
         self,
-        model_name_or_path: str = "pszemraj/long-t5-tglobal-base-16384-book-summary",
+        model_name_or_path: str = "BEE-spoke-data/pegasus-x-base-synthsumm_open-16k",
         use_cuda: bool = True,
         is_general_attention_model: bool = True,
-        token_batch_length: int = 2048,
+        token_batch_length: int = 4096,
         batch_stride: int = 16,
         max_length_ratio: float = 0.25,
         load_in_8bit: bool = False,
@@ -60,17 +60,17 @@ class Summarizer:
         f"""
         __init__ - initialize the Summarizer class
 
-        :param str model_name_or_path: the name or path of the model to load, defaults to "pszemraj/long-t5-tglobal-base-16384-book-summary"
-        :param bool use_cuda: whether to use cuda, defaults to True
+        :param str model_name_or_path: name or path of the model to load, defaults to "BEE-spoke-data/pegasus-x-base-synthsumm_open-16k"
+        :param bool use_cuda: whether to use cuda if available, defaults to True
         :param bool is_general_attention_model: whether the model is a general attention model, defaults to True
-        :param int token_batch_length: the amount of tokens to process in a batch, defaults to 2048
+        :param int token_batch_length: number of tokens to split the text into for batch summaries, defaults to 4096
         :param int batch_stride: the amount of tokens to stride the batch by, defaults to 16
-        :param float max_length_ratio: the ratio of the token_batch_length to use as the max_length for the model, defaults to 0.25
-        :param bool load_in_8bit: whether to load the model in 8bit precision (LLM.int8), defaults to False
-        :param bool compile_model: whether to compile the model (pytorch 2.0+ only), defaults to False
-        :param bool optimum_onnx: whether to load the model in ONNX Runtime, defaults to False
-        :param bool force_cache: whether to force the model to use cache, defaults to False
-        :param bool disable_progress_bar: whether to disable the progress bar, defaults to False
+        :param float max_length_ratio: ratio of the token_batch_length to calculate max_length (of outputs), defaults to 0.25
+        :param bool load_in_8bit: load the model in 8bit precision (LLM.int8), defaults to False
+        :param bool compile_model: compile the model (pytorch 2.0+ only), defaults to False
+        :param bool optimum_onnx: load the model in ONNX Runtime, defaults to False
+        :param bool force_cache: force the model to use cache in generation, defaults to False
+        :param bool disable_progress_bar: disable the per-document progress bar, defaults to False
         :param kwargs: additional keyword arguments to pass to the model as inference parameters, any of: {self.settable_inference_params}
         """
         self.logger = logging.getLogger(__name__)
@@ -113,6 +113,10 @@ class Summarizer:
                 provider=provider,
                 export=not Path(self.model_name_or_path).is_dir(),
             )  # if a directory, already exported
+            self.logger.warning(
+                "ONNXruntime support is experimental, and functionality may vary per-model. "
+                "Model outputs should be checked for accuracy"
+            )
         else:
             self.model = AutoModelForSeq2SeqLM.from_pretrained(
                 self.model_name_or_path,
@@ -625,8 +629,9 @@ class Summarizer:
             # or
             summary = summarizer("/path/to/textfile.txt")
         """
+        MAX_FILEPATH_LENGTH = 300  # est
         if (
-            len(str(input_data)) < 1000  # assume > 1000 characters is plaintext
+            len(str(input_data)) < MAX_FILEPATH_LENGTH
             and isinstance(input_data, (str, Path))
             and Path(input_data).is_file()
         ):

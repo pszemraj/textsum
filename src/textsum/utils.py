@@ -1,10 +1,9 @@
 """
-    utils.py - Utility functions for the project.
+utils.py - Utility functions for the project.
 """
 
 import logging
 import re
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -23,56 +22,6 @@ def get_timestamp() -> str:
     get_timestamp - get a timestamp for the current time
     """
     return datetime.now().strftime("%Y%m%d_%H%M%S")
-
-
-def regex_gpu_name(input_text: str):
-    """backup if not a100"""
-
-    pattern = re.compile(r"(\s([A-Za-z0-9]+\s)+)(\s([A-Za-z0-9]+\s)+)", re.IGNORECASE)
-    return pattern.search(input_text).group()
-
-
-def check_GPU(verbose=False):
-    """
-    check_GPU - a function in Python that uses the subprocess module and regex to call the `nvidia-smi` command and check the available GPU. the function returns a boolean as to whether the GPU is an A100 or not
-
-    :param verbose: if true, print out which GPU was found if it is not an A100
-    """
-    # call nvidia-smi
-    nvidia_smi = subprocess.run(
-        ["nvidia-smi"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
-    )
-    # convert to string
-    nvidia_smi = nvidia_smi.stdout.decode("utf-8")
-    search_past = "==============================="
-    # use regex to find the GPU name. search in the first newline underneath <search_past>
-    output_lines = nvidia_smi.split("\n")
-    for i, line in enumerate(output_lines):
-        if search_past in line:
-            break
-    # get the next line
-    next_line = output_lines[i + 1]
-    if verbose:
-        print(next_line)
-    # use regex to find the GPU name
-    try:
-        gpu_name = re.search(r"\w+-\w+-\w+", next_line).group()
-    except AttributeError:
-        logging.debug("Could not find GPU name with initial regex")
-        gpu_name = None
-
-    if gpu_name is None:
-        # try alternates
-        try:
-            gpu_name = regex_gpu_name(next_line)
-        except Exception as e:
-            logging.error(f"Could not find GPU name: {e}")
-            return False
-
-    if verbose:
-        print(f"GPU found: {gpu_name}")
-    # check if it is an A100
-    return bool("A100" in gpu_name)
 
 
 def validate_pytorch2(torch_version: str = None):
@@ -193,23 +142,28 @@ def setup_logging(loglevel, logfile=None) -> None:
 
 def postprocess_booksummary(text: str, custom_phrases: list = None) -> str:
     """
-    postprocess_booksummary - postprocess the book summary
+    Postprocess the book summary by removing specified introductory phrases if they
+    appear at the beginning of the text (case-insensitive).
 
-    :param str text: the text to postprocess
-    :param list custom_phrases: custom phrases to remove from the text, defaults to None
-    :return str: the postprocessed text
+    :param str text: The text to postprocess.
+    :param list custom_phrases: Custom phrases to remove from the text, defaults to None.
+    :return str: The postprocessed text.
     """
     REMOVAL_PHRASES = [
         "In this section, ",
         "In this lecture, ",
         "In this chapter, ",
         "In this paper, ",
-    ]  # the default phrases to remove (from booksum dataset)
+    ]
 
-    if custom_phrases is not None:
+    if custom_phrases:
         REMOVAL_PHRASES.extend(custom_phrases)
-    for pr in REMOVAL_PHRASES:
-        text = text.replace(pr, "")
+
+    for phrase in REMOVAL_PHRASES:
+        if text.lower().startswith(phrase.lower()):
+            text = text[len(phrase) :]
+            break  # Stop after the first match to preserve other phrases
+
     return text.strip()
 
 
@@ -224,11 +178,33 @@ def check_bitsandbytes_available():
     return True
 
 
-def enable_tf32():
+def check_ampere_gpu() -> None:
     """
-    enable_tf32 - enables computation in tf32 precision. (requires ampere series GPU or newer)
+    Check if the GPU supports NVIDIA Ampere or later and enable TF32 in PyTorch if it does.
+    """
+    # Check if CUDA is available
+    if not torch.cuda.is_available():
+        logging.info("No GPU detected, running on CPU.")
+        return
 
-        See https://blogs.nvidia.com/blog/2020/05/14/tensorfloat-32-precision-format/ for details
-    """
-    logging.debug("Enabling TF32 computation")
-    torch.backends.cuda.matmul.allow_tf32 = True
+    try:
+        device = torch.cuda.current_device()
+        capability = torch.cuda.get_device_capability(device)
+        major, minor = capability
+
+        # Check if Ampere or newer (compute capability >= 8.0)
+        if major >= 8:
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            gpu_name = torch.cuda.get_device_name(device)
+            print(
+                f"{gpu_name} (compute capability {major}.{minor}) supports NVIDIA Ampere or later, enabled TF32 in PyTorch."
+            )
+        else:
+            gpu_name = torch.cuda.get_device_name(device)
+            print(
+                f"{gpu_name} (compute capability {major}.{minor}) is not NVIDIA Ampere or later."
+            )
+
+    except Exception as e:
+        logging.warning(f"Error occurred while checking GPU: {e}")
