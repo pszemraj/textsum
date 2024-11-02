@@ -93,10 +93,10 @@ The package also supports a number of optional extra features, which can be inst
 - `app`: Install with `pip install -e "textsum[app]"`
 - `unidecode`: Install with `pip install -e "textsum[unidecode]"`
 
-Replace `textsum` in the command with `.` if installing from source.Read below for more details on how to use these features.
+Replace `textsum` in the command with `.` if installing from source. Read below for more details on how to use these features.
 
 > [!TIP]
-> The `unidecode` extra is a GPL-licensed dependency not included by default with the `clean-text` python package. Installing it would improve the text cleaning pre-summarization for noisy text, but in general it should not make a significant difference in most use cases.
+> The `unidecode` extra is a GPL-licensed dependency not included by default with the `clean-text` package. Installing it should improve the cleaning of noisy input text, but it should not make a significant difference in most use cases.
 
 ## Usage
 
@@ -131,13 +131,13 @@ print(f'summary saved to {out_path}')
 
 ### CLI
 
-To summarize a directory of text files, run the following command:
+To summarize a directory of text files, run the following command in your terminal:
 
 ```bash
 textsum-dir /path/to/dir
 ```
 
-A full list:
+There are many CLI flags available. A full list:
 
 
 <details>
@@ -177,14 +177,13 @@ Some useful options are:
 
 Arguments:
 
-- `input_dir`: The directory containing the input text files to be summarized.
 - `--model`: model name or path to use for summarization. (Optional)
 - `--shuffle`: Shuffle the input files before processing. (Optional)
 - `--skip_completed`: Skip already completed files in the output directory. (Optional)
 - `--batch_length`: The maximum length of each input batch. Default is 4096. (Optional)
 - `--output_dir`: The directory to write the summarized output files. Default is `./summarized/`. (Optional)
 
-For more information, run the following:
+To see all available options, run the following command:
 
 ```bash
 textsum-dir --help
@@ -198,7 +197,7 @@ For convenience, a UI demo[^1] is provided using [gradio](https://gradio.app/). 
 pip install textsum[app]
 ```
 
-To run the demo, run the following command:
+To launch the demo, run:
 
 ```bash
 textsum-ui
@@ -210,7 +209,7 @@ This will start a local server that you can access in your browser & a shareable
 
 ## Models
 
-Summarization is a memory-intensive task, and the [default model is relatively small and efficient](https://huggingface.co/BEE-spoke-data/pegasus-x-base-synthsumm_open-16k) for long-form text summarization. If you want to use a bigger model, you can specify the `model_name_or_path` argument when instantiating the `Summarizer` class.
+Summarization is a memory-intensive task, and the [default model is relatively small and efficient](https://huggingface.co/BEE-spoke-data/pegasus-x-base-synthsumm_open-16k) for long-form text summarization. If you want to use a different model, you can specify the `model_name_or_path` argument when instantiating the `Summarizer` class.
 
 ```python
 summarizer = Summarizer(model_name_or_path='pszemraj/long-t5-tglobal-xl-16384-book-summary')
@@ -233,7 +232,7 @@ Any [text-to-text](https://huggingface.co/models?filter=text2text) or [summariza
 Memory usage can also be reduced by adjusting the [parameters for inference](https://huggingface.co/docs/transformers/generation_strategies#beam-search-decoding). This is discussed in detail in the [project wiki](https://github.com/pszemraj/textsum/wiki).
 
 > [!IMPORTANT]
-> tl;dr for this README: use the `summarizer.set_inference_params()` and `summarizer.get_inference_params()` methods to adjust the inference parameters, passing either a python `dict` or a JSON file.
+> tl;dr: use the `summarizer.set_inference_params()` and `summarizer.get_inference_params()` methods to adjust the inference parameters, passing either a python `dict` or a JSON file.
 
 Support for `GenerationConfig` as the primary method to adjust inference parameters is planned for a future release.
 
@@ -253,7 +252,7 @@ To use these options, use the `--load_in_8bit` and `--tf32` flags when using the
 textsum-dir /path/to/dir --load_in_8bit --tf32
 ```
 
-Or in python, using the `load_in_8bit` argument:
+Or in Python, using the `load_in_8bit` argument:
 
 ```python
 summarizer = Summarizer(load_in_8bit=True)
