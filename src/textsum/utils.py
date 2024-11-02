@@ -142,23 +142,28 @@ def setup_logging(loglevel, logfile=None) -> None:
 
 def postprocess_booksummary(text: str, custom_phrases: list = None) -> str:
     """
-    postprocess_booksummary - postprocess the book summary
+    Postprocess the book summary by removing specified introductory phrases if they
+    appear at the beginning of the text (case-insensitive).
 
-    :param str text: the text to postprocess
-    :param list custom_phrases: custom phrases to remove from the text, defaults to None
-    :return str: the postprocessed text
+    :param str text: The text to postprocess.
+    :param list custom_phrases: Custom phrases to remove from the text, defaults to None.
+    :return str: The postprocessed text.
     """
     REMOVAL_PHRASES = [
         "In this section, ",
         "In this lecture, ",
         "In this chapter, ",
         "In this paper, ",
-    ]  # the default phrases to remove (from booksum dataset)
+    ]
 
-    if custom_phrases is not None:
+    if custom_phrases:
         REMOVAL_PHRASES.extend(custom_phrases)
-    for pr in REMOVAL_PHRASES:
-        text = text.replace(pr, "")
+
+    for phrase in REMOVAL_PHRASES:
+        if text.lower().startswith(phrase.lower()):
+            text = text[len(phrase) :]
+            break  # Stop after the first match to preserve other phrases
+
     return text.strip()
 
 
@@ -173,11 +178,33 @@ def check_bitsandbytes_available():
     return True
 
 
-def check_ampere_gpu():
+def check_ampere_gpu() -> None:
     """
-    enable_tf32 - enables computation in tf32 precision. (requires ampere series GPU or newer)
+    Check if the GPU supports NVIDIA Ampere or later and enable TF32 in PyTorch if it does.
+    """
+    # Check if CUDA is available
+    if not torch.cuda.is_available():
+        logging.info("No GPU detected, running on CPU.")
+        return
 
-        See https://blogs.nvidia.com/blog/2020/05/14/tensorfloat-32-precision-format/ for details
-    """
-    logging.debug("Enabling TF32 computation")
-    torch.backends.cuda.matmul.allow_tf32 = True
+    try:
+        device = torch.cuda.current_device()
+        capability = torch.cuda.get_device_capability(device)
+        major, minor = capability
+
+        # Check if Ampere or newer (compute capability >= 8.0)
+        if major >= 8:
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            gpu_name = torch.cuda.get_device_name(device)
+            print(
+                f"{gpu_name} (compute capability {major}.{minor}) supports NVIDIA Ampere or later, enabled TF32 in PyTorch."
+            )
+        else:
+            gpu_name = torch.cuda.get_device_name(device)
+            print(
+                f"{gpu_name} (compute capability {major}.{minor}) is not NVIDIA Ampere or later."
+            )
+
+    except Exception as e:
+        logging.warning(f"Error occurred while checking GPU: {e}")
