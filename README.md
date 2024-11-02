@@ -1,15 +1,3 @@
-<!-- These are examples of badges you might want to add to your README:
-     please update the URLs accordingly
-
-[![Built Status](https://api.cirrus-ci.com/github/<USER>/textsum.svg?branch=main)](https://cirrus-ci.com/github/<USER>/textsum)
-[![ReadTheDocs](https://readthedocs.org/projects/textsum/badge/?version=latest)](https://textsum.readthedocs.io/en/stable/)
-[![Coveralls](https://img.shields.io/coveralls/github/<USER>/textsum/main.svg)](https://coveralls.io/r/<USER>/textsum)
-[![PyPI-Server](https://img.shields.io/pypi/v/textsum.svg)](https://pypi.org/project/textsum/)
-[![Conda-Forge](https://img.shields.io/conda/vn/conda-forge/textsum.svg)](https://anaconda.org/conda-forge/textsum)
-[![Monthly Downloads](https://pepy.tech/badge/textsum/month)](https://pepy.tech/project/textsum)
-[![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Twitter)](https://twitter.com/textsum)
--->
-
 # textsum
 
  <a href="https://colab.research.google.com/gist/pszemraj/ff8a8486dc3303199fe9c9790a606fff/textsum-summarize-text-files-example.ipynb">
@@ -23,7 +11,8 @@
 
 This package provides easy-to-use interfaces for using summarization models on text documents of arbitrary length. Currently implemented interfaces include a python API, CLI, and a shareable demo app.
 
-For details, explanations, and docs, see the [wiki](https://github.com/pszemraj/textsum/wiki)
+> [!TIP]
+> For additional details, explanations, and docs, see the [wiki](https://github.com/pszemraj/textsum/wiki)
 
 ---
 
@@ -98,15 +87,16 @@ pip install -e .[all]
 
 The package also supports a number of optional extra features, which can be installed as follows:
 
-- `8bit`: Install with `pip install -e .[8bit]`
-- `optimum`: Install with `pip install -e .[optimum]`
-- `PDF`: Install with `pip install -e .[PDF]`
-- `app`: Install with `pip install -e .[app]`
-- `unidecode`: Install with `pip install -e .[unidecode]`
+- `8bit`: Install with `pip install -e "textsum[8bit]"`
+- `optimum`: Install with `pip install -e "textsum[optimum]"`
+- `PDF`: Install with `pip install -e "textsum[PDF]"`
+- `app`: Install with `pip install -e "textsum[app]"`
+- `unidecode`: Install with `pip install -e "textsum[unidecode]"`
 
-Read below for more details on how to use these features.
+Replace `textsum` in the command with `.` if installing from source.Read below for more details on how to use these features.
 
-> _Note:_ The `unidecode` extra is a GPL-licensed dependency that is not included by default with the `clean-text` python package. While it can be used for text cleaning pre-summarization, it generally should not make a significant difference in most use cases.
+> [!TIP]
+> The `unidecode` extra is a GPL-licensed dependency not included by default with the `clean-text` python package. Installing it would improve the text cleaning pre-summarization for noisy text, but in general it should not make a significant difference in most use cases.
 
 ## Usage
 
@@ -202,7 +192,7 @@ textsum-dir --help
 
 ### Demo App
 
-For convenience, a UI demo[^1] is provided using [gradio](https://gradio.app/). To ensure you have the dependencies installed, clone the repo and run the following command:
+For convenience, a UI demo[^1] is provided using [gradio](https://gradio.app/). To ensure you have the dependencies installed, run the following command:
 
 ```bash
 pip install textsum[app]
@@ -240,24 +230,27 @@ Any [text-to-text](https://huggingface.co/models?filter=text2text) or [summariza
 
 ### Parameters
 
-Memory usage can also be reduced by adjusting the parameters for inference. This is discussed in detail in the [project wiki](https://github.com/pszemraj/textsum/wiki).
+Memory usage can also be reduced by adjusting the [parameters for inference](https://huggingface.co/docs/transformers/generation_strategies#beam-search-decoding). This is discussed in detail in the [project wiki](https://github.com/pszemraj/textsum/wiki).
 
-tl;dr for this README: use the `summarizer.set_inference_params()` and `summarizer.get_inference_params()` methods to adjust the parameters for inference from either a python `dict` or a JSON file.
+> [!IMPORTANT]
+> tl;dr for this README: use the `summarizer.set_inference_params()` and `summarizer.get_inference_params()` methods to adjust the inference parameters, passing either a python `dict` or a JSON file.
 
 Support for `GenerationConfig` as the primary method to adjust inference parameters is planned for a future release.
 
 ### 8-bit Quantization & TensorFloat32
 
-Some methods of reducing memory usage _if you have compatible hardware_ include loading the model in 8-bit precision via [LLM.int8](https://arxiv.org/abs/2208.07339) and using the `--tf32` flag to use TensorFloat32 precision. See the [transformers docs](https://huggingface.co/docs/transformers/perf_infer_gpu_one#efficient-inference-on-a-single-gpu) for more details on how this works. Using LLM.int8 requires the [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) package, which can either be installed directly or via the `textsum[8bit]` extra:
+Some methods of efficient inference[^2] include loading the model in 8-bit precision via [LLM.int8](https://arxiv.org/abs/2208.07339) (_reduces memory usage_) and enabling TensorFloat32 precision  in the torch backend (_reduces latency_). See the [transformers docs](https://huggingface.co/docs/transformers/perf_infer_gpu_one#efficient-inference-on-a-single-gpu) for more details. Using LLM.int8 requires the [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) package, which can either be installed directly or via the `textsum[8bit]` extra:
+
+[^2]: if you have compatible hardware. In general, ampere (RTX 30XX) and newer GPUs are recommended.
 
 ```bash
 pip install textsum[8bit]
 ```
 
-To use these options, use the `-8bit` and `--tf32` flags when using the CLI:
+To use these options, use the `--load_in_8bit` and `--tf32` flags when using the CLI:
 
 ```bash
-textsum-dir /path/to/dir -8bit --tf32
+textsum-dir /path/to/dir --load_in_8bit --tf32
 ```
 
 Or in python, using the `load_in_8bit` argument:
@@ -266,19 +259,28 @@ Or in python, using the `load_in_8bit` argument:
 summarizer = Summarizer(load_in_8bit=True)
 ```
 
-If using the python API, it's better to initiate tf32 yourself; see [here](https://huggingface.co/docs/transformers/perf_train_gpu_one#tf32) for how.
+If using the Python API, either [manually activate tf32](https://huggingface.co/docs/transformers/perf_train_gpu_one#tf32) or use the `check_ampere_gpu()` function from `textsum.utils` **before initializing the `Summarizer` class**:
+
+```python
+from textsum.utils import check_ampere_gpu
+check_ampere_gpu() # automatically enables TF32 if Ampere+ available
+summarizer = Summarizer(load_in_8bit=True)
+```
 
 ### Using Optimum ONNX Runtime
 
-> ⚠️ **Note:** This feature is experimental and might not work as expected. Use at your own risk. ⚠️🧪
+> [!CAUTION]
+> This feature is experimental and might not work as expected. Use at your own risk. ⚠️🧪
 
-ONNX Runtime is a performance-focused inference engine for ONNX models. It can be used to enhance the speed of model predictions, especially on Windows and in environments where GPU acceleration is not available. If you want to use ONNX runtime for inference, you need to set `optimum_onnx=True` when initializing the `Summarizer` class.
+ONNX Runtime is a performance-oriented inference engine for ONNX models. It can be used to increase the speed of model inference, especially on Windows and in environments where GPU acceleration is not available. If you want to use ONNX runtime for inference, you need to set `optimum_onnx=True` when initializing the `Summarizer` class.
 
-First, install with `pip install textsum[optimum]`. Then, you can use the following code to initialize the `Summarizer` class with ONNX runtime:
+First, install with `pip install textsum[optimum]`. Then initialize the `Summarizer` class with ONNX runtime:
 
 ```python
-summarizer = Summarizer(optimum_onnx=True)
+summarizer = Summarizer(model_name_or_Path="onnx-compatible-model-name", optimum_onnx=True)
 ```
+
+It will automatically convert the model if it has not been converted to ONNX yet.
 
 **Notes:**
 
@@ -287,23 +289,28 @@ summarizer = Summarizer(optimum_onnx=True)
 
 ### Force Cache
 
-By default, the summarization model uses past computations to speed up decoding. If you want to force the model to always use cache irrespective of the model's default behavior, you can set `force_cache=True` when initializing the `Summarizer` class.
+> [!CAUTION]
+> Setting `force_cache=True` might lead to different behavior in certain models. Test the model with and without `force_cache` on **the same input text** before using it for anything important.
+
+Using the cache speeds up autoregressive generation by avoiding recomputing attention for tokens that have already been generated. If you want to force the model to always use cache irrespective of the model's default behavior[^3], you can set `force_cache=True` when initializing the `Summarizer` class.
+
+[^3]: `use_cache` can sometimes be disabled due to things like gradient accumulation training, etc., and if not re-enabled will result in slower inference times.
 
 ```python
 summarizer = Summarizer(force_cache=True)
 ```
 
-**Note:** Setting `force_cache=True` might lead to different behavior in certain models.
 
 ### Compile Model
 
-By default, the model isn't compiled for efficient inference. If you want to compile the model for faster inference times, you can set `compile_model=True` when initializing the `Summarizer` class.
+If you want to [compile the model](https://pytorch.org/tutorials/intermediate/torch_compile_tutorial.html) for faster inference times, you can set `compile_model=True` when initializing the `Summarizer` class.
 
 ```python
 summarizer = Summarizer(compile_model=True)
 ```
 
-**Note:** Compiling the model might not be supported on all platforms and requires pytorch > 2.0.0.
+> [!NOTE]
+> Compiling the model might not be supported on all platforms and requires pytorch > 2.0.0.
 
 ---
 
