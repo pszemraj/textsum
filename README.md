@@ -220,7 +220,7 @@ This will start a local server that you can access in your browser & a shareable
 
 ## Models
 
-Summarization is a memory-intensive task, and the [default model is relatively small and efficient](https://huggingface.co/pszemraj/long-t5-tglobal-base-16384-book-summary) for long-form text summarization. If you want to use a bigger model, you can specify the `model_name_or_path` argument when instantiating the `Summarizer` class.
+Summarization is a memory-intensive task, and the [default model is relatively small and efficient](https://huggingface.co/BEE-spoke-data/pegasus-x-base-synthsumm_open-16k) for long-form text summarization. If you want to use a bigger model, you can specify the `model_name_or_path` argument when instantiating the `Summarizer` class.
 
 ```python
 summarizer = Summarizer(model_name_or_path='pszemraj/long-t5-tglobal-xl-16384-book-summary')

@@ -44,7 +44,7 @@ class Summarizer:
 
     def __init__(
         self,
-        model_name_or_path: str = "pszemraj/long-t5-tglobal-base-16384-book-summary",
+        model_name_or_path: str = "BEE-spoke-data/pegasus-x-base-synthsumm_open-16k",
         use_cuda: bool = True,
         is_general_attention_model: bool = True,
         token_batch_length: int = 2048,
@@ -60,7 +60,7 @@ class Summarizer:
         f"""
         __init__ - initialize the Summarizer class
 
-        :param str model_name_or_path: the name or path of the model to load, defaults to "pszemraj/long-t5-tglobal-base-16384-book-summary"
+        :param str model_name_or_path: the name or path of the model to load, defaults to "BEE-spoke-data/pegasus-x-base-synthsumm_open-16k"
         :param bool use_cuda: whether to use cuda, defaults to True
         :param bool is_general_attention_model: whether the model is a general attention model, defaults to True
         :param int token_batch_length: the amount of tokens to process in a batch, defaults to 2048
