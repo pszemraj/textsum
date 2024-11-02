@@ -47,7 +47,7 @@ class Summarizer:
         model_name_or_path: str = "BEE-spoke-data/pegasus-x-base-synthsumm_open-16k",
         use_cuda: bool = True,
         is_general_attention_model: bool = True,
-        token_batch_length: int = 2048,
+        token_batch_length: int = 4096,
         batch_stride: int = 16,
         max_length_ratio: float = 0.25,
         load_in_8bit: bool = False,
@@ -625,8 +625,9 @@ class Summarizer:
             # or
             summary = summarizer("/path/to/textfile.txt")
         """
+        MAX_FILEPATH_LENGTH = 300  # est
         if (
-            len(str(input_data)) < 1000  # assume > 1000 characters is plaintext
+            len(str(input_data)) < MAX_FILEPATH_LENGTH
             and isinstance(input_data, (str, Path))
             and Path(input_data).is_file()
         ):
