@@ -173,7 +173,7 @@ def check_bitsandbytes_available():
     return True
 
 
-def enable_tf32():
+def check_ampere_gpu():
     """
     enable_tf32 - enables computation in tf32 precision. (requires ampere series GPU or newer)
 

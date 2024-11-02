@@ -16,7 +16,7 @@ from tqdm.auto import tqdm
 
 import textsum
 from textsum.summarize import Summarizer
-from textsum.utils import enable_tf32, setup_logging
+from textsum.utils import check_ampere_gpu, setup_logging
 
 
 def main(
@@ -98,7 +98,7 @@ def main(
     }
 
     if tf32:
-        enable_tf32()  # enable tf32 for computation
+        check_ampere_gpu()  # enable tf32 for computation
 
     summarizer = Summarizer(
         model_name_or_path=model,
