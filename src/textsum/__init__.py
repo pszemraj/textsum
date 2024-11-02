@@ -2,6 +2,7 @@
 textsum - a package for summarizing text
 
 """
+
 import sys
 
 if sys.version_info[:2] >= (3, 8):
